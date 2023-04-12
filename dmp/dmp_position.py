@@ -8,7 +8,7 @@ from dmp.canonical_system import CanonicalSystem
 from util import math_util
 
 
-class PositionDMP: 
+class PositionDMP:
     def __init__(self, n_bfs=10, alpha: float = 48.0, beta: float = None, cs_alpha=None, cs=None, roto_dilatation=False):
         self.n_bfs = n_bfs
         self.alpha = alpha

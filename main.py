@@ -13,7 +13,7 @@ def omega_to_quat(omega, dt):
 
 if __name__ == '__main__':
     demo_filename = "demonstration.csv"
-
+    
     # Read Demonstration and generate time vector
     demo = pd.read_csv(demo_filename, delimiter=" ")
 
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     dt = 0.002
     tau = len(demo) * dt
     ts = np.arange(0, tau, dt)
-
+    """
     # Joint-Space DMP
     cs_alpha = -np.log(0.0001)
     dmp_q = dmp_joint.JointDMP(n_bfs=100, alpha=500, beta=100, cs_alpha=cs_alpha)
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     axs[2, 1].legend()
     plt.suptitle('Joint-space DMP')
     plt.show()
-
+    """
     ## Cartesian DMP
     # Ensure that the orientations are formatted properly
     for i in range(1, len(aa)):
