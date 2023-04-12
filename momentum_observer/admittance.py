@@ -4,7 +4,7 @@ import spatialmath as sm
 import matplotlib.pyplot as plt
 import time
 import quaternion
-from spatialmath import UnitQuaternion
+
 
 class Admitance:
     def __init__(self,robot,kp,ko,Tc,dt = None):
@@ -62,13 +62,14 @@ class Admitance:
         n = np.cos(np.linalg.norm(r))
 
         if(np.linalg.norm(r) < 0.00000001):
-            return UnitQuaternion([1,0,0,0])
+            return np.array([1,0,0,0]).reshape(4,1)
         else:
 
             e = r/np.linalg.norm(r)*np.sin(np.linalg.norm(r))
             e = e.reshape(3,)
             test = 1
-        return UnitQuaternion([n,e[0],e[1],e[2]])
+            
+        return np.array([[n,e[0],e[1],e[2]]]).reshape(4,1) 
 
 
     def calcSp(self):
