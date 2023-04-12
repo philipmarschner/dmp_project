@@ -98,3 +98,6 @@ def quat_to_axang(q):
         if np.dot(q[i].vec, q[i-1].vec) < 0:
             q[i] *= -1
     return quaternion.as_float_array(2*np.log(np.normalized(q)))[..., 1:]
+
+def sum_of_squres_error(x, y):
+    return np.sum(np.square(x - y))
