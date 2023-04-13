@@ -4,7 +4,7 @@ import spatialmath as sm
 import matplotlib.pyplot as plt
 import time
 import quaternion
-from spatialmath import UnitQuaternion
+#from spatialmath import UnitQuaternion
 
 class Admitance:
     def __init__(self,robot,kp,ko,Tc,dt = None):
@@ -31,7 +31,6 @@ class Admitance:
         self.Tc = Tc
 
         self.calcSp()
-
         self.calcAd()
         self.calcKdPosition()
         self.calcKdOrientation()
@@ -59,10 +58,12 @@ class Admitance:
         return n*np.eye(3)-self.skew(e)
     
     def quatExp(self,r):
+        print("This function is depreciated, exitting...")
+        exit()
         n = np.cos(np.linalg.norm(r))
 
         if(np.linalg.norm(r) < 0.00000001):
-            return UnitQuaternion([1,0,0,0])
+            return ([1,0,0,0])
         else:
 
             e = r/np.linalg.norm(r)*np.sin(np.linalg.norm(r))
@@ -102,12 +103,14 @@ class Admitance:
 
     def quatIntegrate(self,w):
         r =self.dt/2*w.T
-        #r = np.insert(r,0,0) 
+        r = np.insert(r,0,0) 
 
-        rquat = self.quatExp(r)
+        #rquat = self.quatExp(r)
 
+        temp = quaternion.from_float_array(r)
+        rquat = np.exp(temp)
 
-        temp = rquat*quaternion.from_float_array(self.deltaQuat.T)
+        temp = rquat*quaternion.from_float_array(self.deltaQuat.T.reshape(4,))
 
         return  quaternion.as_float_array(temp).reshape(4,1)
     

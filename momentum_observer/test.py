@@ -37,7 +37,7 @@ for i in range(25000):
         wrench = testwrench
     elif t > 15 and t < 20: 
         wrench = np.array([[1], [0.5], [1], [0], [0], [0]])
-        print(admittanceController.getDeltaQuat())
+        
 
     else:
         wrench = np.array([[0], [0], [0], [0], [0], [0]])
