@@ -4,6 +4,7 @@ import spatialmath as sm
 import matplotlib.pyplot as plt
 import time
 import quaternion
+
 #from spatialmath import UnitQuaternion
 
 class Admitance:
@@ -69,7 +70,8 @@ class Admitance:
             e = r/np.linalg.norm(r)*np.sin(np.linalg.norm(r))
             e = e.reshape(3,)
             test = 1
-        return UnitQuaternion([n,e[0],e[1],e[2]])
+            
+        return np.array([[n,e[0],e[1],e[2]]]).reshape(4,1) 
 
 
     def calcSp(self):
