@@ -13,7 +13,7 @@ def omega_to_quat(omega, dt):
     return omega_quat
 
 
-plot = False
+plot = True
 robot_ip = "172.17.0.2"
 
 if __name__ == '__main__':
@@ -23,8 +23,9 @@ if __name__ == '__main__':
         exit(1)
 
     # Read Demonstration and generate time vector
-    demo_filename = "demonstration.csv"
-    demo = pd.read_csv(demo_filename, delimiter=" ")
+    #demo_filename = "demonstration.csv"
+    demo_filename = "recorded_data.csv"
+    demo = pd.read_csv(demo_filename, delimiter=",")
 
     q = demo[['actual_q_0', 'actual_q_1', 'actual_q_2', 'actual_q_3', 'actual_q_4', 'actual_q_5']].to_numpy()
     p = demo[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2']].to_numpy()
@@ -132,6 +133,4 @@ if __name__ == '__main__':
 
             plt.show()
 
-        stream_traj(p_out, aa_out, robot_ip)
-
-    print("Invalid arguments.")
+        #stream_traj(p_out, aa_out, robot_ip)
