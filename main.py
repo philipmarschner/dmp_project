@@ -13,8 +13,8 @@ def omega_to_quat(omega, dt):
     return omega_quat
 
 
-plot = True
-robot_ip = "172.17.0.2"
+plot = False
+robot_ip = "192.168.1.111"
 
 if __name__ == '__main__':
     if(sys.argv.__len__() < 2):
@@ -133,4 +133,4 @@ if __name__ == '__main__':
 
             plt.show()
 
-        #stream_traj(p_out, aa_out, robot_ip)
+        stream_traj(p_out, aa_out, robot_ip)

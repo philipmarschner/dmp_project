@@ -1,0 +1,23 @@
+#!/bin/bash
+USER=$(whoami)
+
+ARGS=""
+if [ -f .simulate ]; then
+  ARGS="-r -d2000"
+fi
+
+if [ "$USER" = "root" ]; then
+  export HOME="/root"
+  # start the controller redirecting standard out and standard errors
+  # using tee so that svlogd still has something to log!
+  exec 1> >(tee /dev/tty10)
+  exec 2> >(tee /dev/tty11)
+  exec ./URControl $ARGS
+else
+  # Development PC
+  export LD_LIBRARY_PATH="/opt/urtool-3.0/lib"
+  export HOME="/home/$USER"
+  exec 2>&1
+  # Unbuffer the stdout by default
+  exec stdbuf -oL ./URControl $ARGS
+fi

@@ -5,3 +5,4 @@ import spatialmath as sm
 import matplotlib.pyplot as plt
 
 from spatialmath import Quaternion
+

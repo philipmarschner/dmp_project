@@ -38,13 +38,13 @@ def stream_traj(pos, rot, robot_ip):
     dt = 1.0/rtde_frequency  # 2ms
     flags = RTDEControl.FLAG_VERBOSE | RTDEControl.FLAG_UPLOAD_SCRIPT
     ur_cap_port = 50002
-    robot_ip = "172.17.0.2"
+    #robot_ip = "172.17.0.2"
 
     lookahead_time = 0.1
     gain = 600
 
     # Check for real time kernel
-    checkKernel()
+    #checkKernel()
 
     # ur_rtde realtime priorities
     rt_receive_priority = 90
@@ -57,6 +57,10 @@ def stream_traj(pos, rot, robot_ip):
     # Move to init position using moveL
     init_pose = getPose(pos[0], rot[0])
     rtde_c.moveL(init_pose, vel, acc)
+
+    #wait for 5 seconds
+    time.sleep(2)
+
 
     i = 1
     try:

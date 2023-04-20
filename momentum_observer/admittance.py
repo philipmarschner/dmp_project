@@ -4,6 +4,8 @@ import spatialmath as sm
 import matplotlib.pyplot as plt
 import time
 import quaternion
+from livefilter import LiveLFilter
+import scipy.signal
 
 #from spatialmath import UnitQuaternion
 
@@ -23,6 +25,13 @@ class Admitance:
         self.deltaW = np.zeros((3,1))
         self.deltaWd = np.zeros((3,1))
         self.deltaQuat = np.array([1,0,0,0]).reshape(4,1)
+        b, a = scipy.signal.iirfilter(10, Wn=3, fs=500, btype="high", ftype="butter")
+        self.filterx = LiveLFilter(b,a)
+        self.filtery = LiveLFilter(b,a)
+        self.filterz = LiveLFilter(b,a)
+        self.filtertx = LiveLFilter(b,a)
+        self.filterty = LiveLFilter(b,a)
+        self.filtertz = LiveLFilter(b,a)
 
         self.t = 0
         if not dt:
@@ -43,6 +52,16 @@ class Admitance:
             temp[i,i] = 2*np.sqrt(self.M[i,i]*self.kp[i,i])
         self.kdp = temp
 
+    def filter_wrench(self, wrench):
+        temp_wrench = wrench
+        temp_wrench[0] = self.filterx._process(wrench[0])
+        temp_wrench[1] = self.filtery._process(wrench[1])
+        temp_wrench[2] = self.filterz._process(wrench[2])
+        temp_wrench[3] = self.filtertx._process(wrench[3])
+        temp_wrench[4] = self.filterty._process(wrench[4])
+        temp_wrench[5] = self.filtertz._process(wrench[5])
+
+        return temp_wrench
 
 
     def calcKdOrientation(self):
@@ -84,20 +103,25 @@ class Admitance:
         self.Ad = np.concatenate((temp, temp2), axis=0)
 
     def transformWrench(self, wrench):
+        #todo byt om på torque og force 
+        wrench_flipped = wrench.copy()
+        wrench_flipped[3:6], wrench_flipped[0:3] = wrench[0:3], wrench[3:6]
+        #todo did above, test if it works
 
-        return np.transpose(self.Ad)@wrench
+        return np.transpose(self.Ad)@wrench_flipped
 
     def getForce(self, wrench):
-        return self.transformWrench(wrench)[3:6]
+        return np.array(wrench)[0:3]
 
     def getTorque(self, wrench):
-        return self.transformWrench(wrench)[0:3]
+        return np.array(wrench)[3:6]
 
     def calcPosqdd(self, wrench):
 
-        self.deltaqddPos = np.linalg.inv(self.M)@(self.getForce(wrench)-self.kp@self.deltaqPos-self.kdp@self.deltaqdPos)
-        self.deltaqPos += self.deltaqdPos*self.dt
+        self.deltaqddPos = np.linalg.inv(self.M)@(self.getForce(wrench).reshape(3,1)-self.kp@self.deltaqPos-self.kdp@self.deltaqdPos)
         self.deltaqdPos += self.deltaqddPos*self.dt
+        self.deltaqPos += self.deltaqdPos*self.dt
+        
         
         
         
@@ -127,10 +151,7 @@ class Admitance:
         self.deltaWd = np.linalg.inv(self.M)@(self.getTorque(wrench)-self.kdo@self.deltaW-self.getKQuat(self.deltaQuat)@self.deltaQuat[1:4])
         self.deltaW = self.deltaWd*self.dt
         self.deltaQuat = self.quatIntegrate(self.deltaW)
-        
-        
-        
-
+    
         return
 
     def getDeltaqPos(self):
@@ -151,7 +172,7 @@ class Admitance:
 
     def step(self, wrench):
         self.calcPosqdd(wrench)
-        self.calcOriqdd(wrench)
+        #self.calcOriqdd(wrench)
         return self.deltaqPos,self.deltaQuat
 
 
