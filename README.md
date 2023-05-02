@@ -15,3 +15,6 @@ To install these, run <code>pip3 install --user numpy numpy-quaternion matplotli
 ## Running
 To the run the project, navigate to the root directory and call <code>python3 main.py</code>. This will first train and plot a DMP in joint space and then do the same in Cartesian space for the provided demonstration file, demonstration.csv.
 
+
+# If error "Fail to process string with tex because latex could not be found" follow this guide
+https://github.com/matplotlib/matplotlib/issues/16911
