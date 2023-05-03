@@ -19,17 +19,17 @@ def main():
 
     
     rtde_r = RTDEReceive("192.168.1.111")
-    rtde_r.startFileRecording("dmp_with_soft_collision.csv")
+    rtde_r.startFileRecording("dmp_collision_500hz_slaps3.csv")
     print("Data recording started, press [Ctrl-C] to end recording.")
     i = 0
     try:
         while True:
             t_start = rtde_r.initPeriod()
             start = time.time()
-            if i % 10 == 0:
-                sys.stdout.write("\r")
-                sys.stdout.write("{:3d} samples.".format(i))
-                sys.stdout.flush()
+        
+            sys.stdout.write("\r")
+            sys.stdout.write("{:3d} samples.".format(i))
+            sys.stdout.flush()
             rtde_r.waitPeriod(t_start)
             i += 1
 

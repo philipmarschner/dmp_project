@@ -27,7 +27,7 @@ rtde_c = RTDEControl(robot_ip, rtde_frequency, flags, ur_cap_port, rt_control_pr
 
 # Create csv file with 12 columns
 # Open the CSV file in append mode and create a CSV writer object
-file = open('FT_data_log1.csv', mode='w', newline='')
+file = open('FT_data_z_slaps.csv', mode='w', newline='')
 writer = csv.writer(file)
 #header = ['fx','fy','fz','tau_x','tau_y','tau_z','posx','posy','posz','rot1','rot2','rot3']
 #writer.writerow(header)

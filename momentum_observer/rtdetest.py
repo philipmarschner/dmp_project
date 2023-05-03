@@ -13,14 +13,17 @@ from livefilter import LiveLFilter
 import scipy
 import csv
 
+import time
+import argparse
+import sys
+
 
 
 robot_ip = "192.168.1.111"
 fs = 500
 #"192.168.1.111"
 
-b, a = scipy.signal.iirfilter(6, Wn=2.5, fs=fs, btype="high", ftype="butter")
-
+b, a = scipy.signal.iirfilter(4, Wn=10, fs=fs, btype="low", ftype="butter")
 live_lfilterfx = LiveLFilter(b, a)
 live_lfilterfy = LiveLFilter(b, a)
 live_lfilterfz = LiveLFilter(b, a)
@@ -68,7 +71,7 @@ UR5e = rtb.models.DH.UR5e()
 Tc = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
 
 observer_c = observer.Observer(10,UR5e)
-admittance_c = admittance.Admitance(UR5e,0,0,Tc)
+admittance_c = admittance.Admitance(UR5e,0,0,Tc,70)
 velocity = 0.5
 acceleration = 0.5
 dt = 1.0/500  # 2ms
@@ -76,6 +79,12 @@ lookahead_time = 0.1
 gain = 300
 
 #wait for 2 seconds
+init_pose = rtde_r.getActualTCPPose()
+rtde_c.moveL(init_pose, vel, acc)
+
+
+#TODO: rotate wrenn to tool frame. Look at picture taken last time.
+
 time.sleep(2)
 rtde_c.zeroFtSensor()
 time.sleep(2)
@@ -91,32 +100,33 @@ rtde_c.endTeachMode()
 
 print("done")
 
-plotting = False
+plotting = True
 
 if plotting:
-    file = open('FT_data_log1.csv', mode='w', newline='')
-    writer = csv.writer(file)
+    #file = open('FT_data_log6.csv', mode='w', newline='')
+    #writer = csv.writer(file)
+    rtde_r.startFileRecording("log_admittance_control3.csv")
 
 #concatenate data
 
 
-
+i = 0
 
 #[4.45956563949585, -1.7731076679625453, -1.3856301307678223, -1.5122645658305665, 1.5766737461090088, -2.2725346724139612]
 try:
     while True:
         t_start = rtde_c.initPeriod()
-        #wrench = rtde_r.getActualTCPForce()
+        wrench = rtde_r.getActualTCPForce()
 
         #wrench = admittance_c.filter_wrench(wrench)
-        wrench = [0.1,0,0,0,0,0]
-        force = np.array(wrench[0:3])
+        #wrench = [0.1,0,0,0,0,0]
+        #force = np.array(wrench[0:3])
 
-        print("force: ")
-        print(np.linalg.norm(force))
+        #print("force: ")
+        #print(np.linalg.norm(force))
 
         #find largest element in force
-        max_force = np.argmax(np.abs(force))
+        #max_force = np.argmax(np.abs(force))
 
         #if max_force < 1:
         #    wrench = [0,0,0,0,0,0]
@@ -125,9 +135,10 @@ try:
 
         current_pose = rtde_r.getActualTCPPose()
 
-        current_position = current_pose[0:3]
-        current_orientation = current_pose[3:7]
+        
 
+        current_position = init_pose[0:3]
+        current_orientation = init_pose[3:6]
         #convert current_position to numpy array
         current_position = np.array(current_position)
 
@@ -143,13 +154,22 @@ try:
         current_pose[1] = new_position[1]
         current_pose[2] = new_position[2]
     
-        new_orientation = current_orientation + deltaori
+        new_orientation = current_orientation
 
       
 
         if plotting:
-            row = wrench
-            writer.writerow(row)
+            #row = admittance_c.exponentialFilter(wrench)[0] + wrench
+            if i % 10 == 0:
+                sys.stdout.write("\r")
+                sys.stdout.write("{:3d} samples.".format(i))
+                sys.stdout.flush()
+
+            i += 1
+
+            
+
+            
 
 
         rtde_c.servoL(current_pose, velocity, acceleration, dt, lookahead_time, gain)
@@ -158,7 +178,8 @@ try:
 
 except KeyboardInterrupt:
     if plotting:
-        file.close()
+        #file.close()
+        rtde_r.stopFileRecording()
 
     rtde_c.servoStop()
     rtde_c.stopScript()

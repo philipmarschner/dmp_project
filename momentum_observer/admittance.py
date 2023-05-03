@@ -10,9 +10,9 @@ import scipy.signal
 #from spatialmath import UnitQuaternion
 
 class Admitance:
-    def __init__(self,robot,kp,ko,Tc,dt = None):
+    def __init__(self,robot,kp,ko,Tc,kdp,dt = None):
         self.kdo = None
-        self.kdp = None
+        self.kdp = np.eye(3)*kdp
         self.Ad = None
         self.Sp = None
         self.robot = robot
@@ -25,13 +25,15 @@ class Admitance:
         self.deltaW = np.zeros((3,1))
         self.deltaWd = np.zeros((3,1))
         self.deltaQuat = np.array([1,0,0,0]).reshape(4,1)
-        b, a = scipy.signal.iirfilter(10, Wn=3, fs=500, btype="high", ftype="butter")
+        b, a = scipy.signal.iirfilter(10, Wn=10, fs=500, btype="low", ftype="butter")
         self.filterx = LiveLFilter(b,a)
         self.filtery = LiveLFilter(b,a)
         self.filterz = LiveLFilter(b,a)
         self.filtertx = LiveLFilter(b,a)
         self.filterty = LiveLFilter(b,a)
         self.filtertz = LiveLFilter(b,a)
+
+        self.lastWrench = np.zeros((1,6))
 
         self.t = 0
         if not dt:
@@ -42,7 +44,7 @@ class Admitance:
 
         self.calcSp()
         self.calcAd()
-        self.calcKdPosition()
+        #self.calcKdPosition()
         self.calcKdOrientation()
 
     def calcKdPosition(self):
@@ -52,6 +54,27 @@ class Admitance:
             temp[i,i] = 2*np.sqrt(self.M[i,i]*self.kp[i,i])
         self.kdp = temp
 
+    def exponentialFilter(self,wrench):
+        alpha = 0.8
+
+        lastArray = np.array(self.lastWrench)
+        wrenchArray = np.array(wrench)
+
+        lastWrenchArray = alpha*lastArray + (1-alpha)*wrenchArray
+        self.lastWrench = lastWrenchArray.tolist()
+
+
+        if np.abs(self.lastWrench[0][0]) < 0.5:
+            self.lastWrench[0][0] = 0
+        if np.abs(self.lastWrench[0][1]) < 0.5:
+            self.lastWrench[0][1] = 0
+        if np.abs(self.lastWrench[0][2]) < 0.5:
+            self.lastWrench[0][2] = 0
+
+        return self.lastWrench
+
+
+
     def filter_wrench(self, wrench):
         temp_wrench = wrench
         temp_wrench[0] = self.filterx._process(wrench[0])
@@ -60,6 +83,16 @@ class Admitance:
         temp_wrench[3] = self.filtertx._process(wrench[3])
         temp_wrench[4] = self.filterty._process(wrench[4])
         temp_wrench[5] = self.filtertz._process(wrench[5])
+
+
+         #find largest element in force
+        max_force_index = np.argmax(np.abs(temp_wrench[0:3]))
+
+
+        if temp_wrench[max_force_index] < 0.5:
+            temp_wrench = [0,0,0,0,0,0]
+
+
 
         return temp_wrench
 
@@ -111,7 +144,15 @@ class Admitance:
         return np.transpose(self.Ad)@wrench_flipped
 
     def getForce(self, wrench):
-        return np.array(wrench)[0:3]
+
+        #filteredWrench = self.filter_wrench(wrench)
+
+        filteredWrench = self.exponentialFilter(wrench)[0]
+
+       
+
+
+        return np.array(filteredWrench)[0:3]
 
     def getTorque(self, wrench):
         return np.array(wrench)[3:6]
@@ -119,8 +160,9 @@ class Admitance:
     def calcPosqdd(self, wrench):
 
         self.deltaqddPos = np.linalg.inv(self.M)@(self.getForce(wrench).reshape(3,1)-self.kp@self.deltaqPos-self.kdp@self.deltaqdPos)
-        self.deltaqdPos += self.deltaqddPos*self.dt
         self.deltaqPos += self.deltaqdPos*self.dt
+        self.deltaqdPos += self.deltaqddPos*self.dt
+        
         
         
         

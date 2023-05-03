@@ -59,7 +59,7 @@ def stream_traj(pos, rot, robot_ip):
     rtde_c.moveL(init_pose, vel, acc)
 
     #wait for 5 seconds
-    time.sleep(2)
+    #time.sleep(2)
 
 
     i = 1

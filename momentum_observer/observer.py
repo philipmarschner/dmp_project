@@ -12,18 +12,24 @@ class Observer:
         self.integral = np.zeros((6,))
         self.oldR = np.zeros((6,))
         self.dt = 0.02
+        #self.fc = np.array([12.54,13.27,4.99,2.0,2.69,2.3])
+        self.fv = np.array([0.0,0.0,0.0,0.0,0.0,0.0])
+        #self.fv = np.array([0.055,0.064,0.050,0.114,0.107,0.015])
+        #self.fc = np.array([14.0,7.0,10.0,2.0,3.0,2.0])
+        self.fc = np.array([0.0,0.0,0.0,0.0,0.0,0.0])
 
         
     
-    def calcR(self,tau,ds):
+    def calcR(self,tau,ds,q,qd):
 
-        q = self.model.q
-        qd = self.model.qd
+        
 
-        self.integral += (tau + np.transpose(self.model.coriolis(q,qd))@qd-self.model.gravload(q) +self.oldR)*ds
+        self.integral += (tau + np.transpose(self.model.coriolis(q,qd))@qd-self.model.gravload(q) -np.multiply(qd,self.fc) - np.multiply(np.sign(qd),self.fv) +self.oldR)*ds
 
         r = self.Ko*(self.model.inertia(q)@qd-self.integral)
         self.oldR = r
+
+
 
         return r
     
