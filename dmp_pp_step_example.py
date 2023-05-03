@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 demo_filename = "recorded_data.csv"
 demo = pd.read_csv(demo_filename, delimiter=",")
 
-q = demo[['actual_q_0', 'actual_q_1', 'actual_q_2', 'actual_q_3', 'actual_q_4', 'actual_q_5']].to_numpy()
+
 p = demo[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2']].to_numpy()
-aa = demo[['actual_TCP_pose_3',	'actual_TCP_pose_4', 'actual_TCP_pose_5']].to_numpy()
+
 
 t_steps = len(p)
 dt = 1.0/500.0  # 2ms
@@ -17,12 +17,18 @@ dt = 1.0/500.0  # 2ms
 
 tau = len(p) * dt
 ts = np.arange(0, tau, dt)
+n_dmp = p.shape[1]
 n_bfs = 100
-cs_alpha = -np.log(0.0001)
 
-MP = dmp(n_dmps = 3, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier')
-MP.imitate_path(x_des=p, t_des = ts)
-p_out, _, _, _ = MP.rollout()
+
+#MP = dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier')
+MP = dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier')
+MP.imitate_path(x_des=p)
+#p_out, _, _, _ = MP.rollout()
+p_out = np.zeros(p.shape)
+for i in range(len(ts)):
+    p_temp, _, _ = MP.step()
+    p_out[i,:] = p_temp
 
 # Plot the results
 fig1 = plt.figure()
@@ -38,6 +44,8 @@ print('p_out', p_out.shape)
 print('p', p.shape)
 print('ts', ts.shape)
 fig2, axs = plt.subplots(3, 1)
+p = p[0:len(p_out),:]
+ts = ts[0:len(p_out)]
 axs[0].plot(ts, p[:, 0], label='Demo x')
 axs[0].plot(ts, p_out[:, 0], label='DMP x')
 axs[0].legend()

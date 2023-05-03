@@ -192,6 +192,8 @@ class DMPs_cartesian(object):
             self.width = 1.0 / np.diff(self.c)
             self.width = np.append(self.width[0], self.width)
 
+
+
     def imitate_path(self, x_des, dx_des = None, ddx_des = None, t_des = None,
         g_w = True, **kwargs):
         '''
@@ -336,6 +338,25 @@ class DMPs_cartesian(object):
         self.dx = v0
         self.ddx = np.zeros(self.n_dmps)
         self.cs.reset_state()
+    
+    def get_centers(self, t0, t1):
+        '''
+        Get the centers of the basis functions
+        '''
+        
+
+
+    def retrain(self):
+        '''
+        Retrain the DMPs using the new trajectory
+        '''
+        # Identify basis functions that shuld be retrained
+        
+
+        # Retrain the basis functions
+        
+        
+        
 
     def rollout(self, tau = 1.0, v0 = None, **kwargs):
         '''
