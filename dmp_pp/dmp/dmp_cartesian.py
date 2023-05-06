@@ -143,6 +143,7 @@ class DMPs_cartesian(object):
             psi_set = np.exp(- xi)
         else:
             xi = np.abs(w * (s - c))
+            print(xi)
             if (self.basis == 'mollifier'):
                 psi_set = (np.exp(- 1.0 / (1.0 - xi * xi))) * (xi < 1.0)
             elif (self.basis == 'wendland2'):
@@ -343,19 +344,43 @@ class DMPs_cartesian(object):
         '''
         Get the centers of the basis functions
         '''
-        
 
 
-    def retrain(self):
+    def gen_retraineds_weights(self, f_target):
+        '''
+        Generate a set of weights over the basis functions such that the
+        target forcing term trajectory is matched.
+         f_target shaped n_dim x n_time_steps
+        '''
+        # Generate the basis functions
+        s_track = self.cs.rollout()
+        psi_track = self.gen_psi(s_track)
+        # Compute useful quantities
+        sum_psi = np.sum(psi_track, 0)
+        P = psi_track / sum_psi * s_track
+        # Compute the weights using linear regression
+        self.w = np.nan_to_num(f_target @ np.linalg.pinv(P))
+
+
+    def retrain(self, x_new, t0, t1):
         '''
         Retrain the DMPs using the new trajectory
         '''
-        # Identify basis functions that shuld be retrained
+        # Subtract t0 from t1 to get the final time when moving t0 to 0
+        tend = t1 - t0
+
+
         
+        # Identify which basis functions that shuld be retrained
+        nbfs = None
+        centers_ids = None #List of ids of the basis functions to retrain
+
+        
+        # Generate new DMP for training
+        temp_dmp = DMPs_cartesian(n_dmps = self.n_dmps, n_bfs = nbfs, dt = self.cs.dt, T = tend, basis = self.basis)
+        temp_dmp.imitate_path(x_des = x_new)
 
         # Retrain the basis functions
-        
-        
         
 
     def rollout(self, tau = 1.0, v0 = None, **kwargs):
