@@ -24,7 +24,8 @@ n_bfs = 100
 #MP = dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier')
 MP = dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier')
 MP.imitate_path(x_des=p)
-#p_out, _, _, _ = MP.rollout()
+
+
 p_out = np.zeros(p.shape)
 for i in range(len(ts)):
     p_temp, _, _ = MP.step()

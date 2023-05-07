@@ -181,6 +181,97 @@ class DMPs_cartesian(object):
         # Compute the weights using linear regression
         self.w = np.nan_to_num(f_target @ np.linalg.pinv(P))
 
+    #own generate weight function without unknown optimization
+    def generate_weights(self,f_target):
+        
+
+         ## Step 2: Learning of the weights using linear regression
+        self.w = np.zeros([self.n_dmps, self.n_bfs + 1])
+        s_track = self.cs.rollout()
+
+        psi_set = self.gen_psi(s_track)
+        psi_sum = np.sum(psi_set,0)
+        psi_sum_2 = psi_sum * psi_sum
+        s_track_2 = s_track * s_track
+        A = np.zeros([self.n_bfs + 1, self.n_bfs + 1])
+        for k in range(self.n_bfs + 1):
+            A[k, k] = scipy.integrate.simps(
+                psi_set[k,:] * psi_set[k,:] * s_track_2 / psi_sum_2, s_track)
+            for h in range(k + 1, self.n_bfs + 1):
+                A[h, k] = scipy.integrate.simps(
+                    psi_set[k,:] * psi_set[h,:] * s_track_2 / psi_sum_2,
+                    s_track)
+                A[k, h] = A[h, k].copy()
+
+       
+
+        LU = scipy.linalg.lu_factor(A)
+
+        # The weights are learned dimension by dimension
+        for d in range(self.n_dmps):
+            f_d_set = f_target[d,:].copy()
+            # Set up the minimization problem
+            b = np.zeros([self.n_bfs + 1])
+            for k in range(self.n_bfs + 1):
+                b[k] = scipy.integrate.simps(
+                    f_d_set * psi_set[k,:] * s_track / psi_sum,
+                    s_track)
+
+            # Solve the minimization problem
+           
+            self.w[d, :] = np.nan_to_num(scipy.linalg.lu_solve(LU, b))
+        self.learned_position = np.ones(self.n_dmps)
+
+    def retrain_weights(self, f_target, s0_tilde, s1_tilde):
+        
+        # Check for right order of s0_tilde and s1_tilde
+        if (s0_tilde < s1_tilde):
+            raise ValueError('s0_tilde must be greater than s1_tilde')
+
+        idx = self.c[self.c > s1_tilde and self.c < s0_tilde] #Index of the basis functions to be retrained
+        n_rbfs = len(self.c[self.c > s1_tilde and self.c < s0_tilde])
+        
+        
+        ## Step 2: Learning of the retrained weights using linear regression
+        rw = np.zeros([n_rbfs, n_rbfs])
+        s_track = self.cs.rollout()
+        if s1_tilde is not None:
+            s_track =s_track[s_track>s1_tilde and s_track < s0_tilde]
+
+        psi_set = self.gen_psi(s_track)
+        psi_sum = np.sum(psi_set,0)
+        psi_sum_2 = psi_sum * psi_sum
+        s_track_2 = s_track * s_track
+        A = np.zeros([n_rbfs, n_rbfs])
+        for k in range(n_rbfs):
+            A[k, k] = scipy.integrate.simps(
+                psi_set[k,:] * psi_set[k,:] * s_track_2 / psi_sum_2, s_track)
+            for h in range(k + 1, n_rbfs):
+                A[h, k] = scipy.integrate.simps(
+                    psi_set[k,:] * psi_set[h,:] * s_track_2 / psi_sum_2,
+                    s_track)
+                A[k, h] = A[h, k].copy()
+
+       
+
+        LU = scipy.linalg.lu_factor(A)
+
+        # The weights are learned dimension by dimension
+        for d in range(self.n_dmps):
+            f_d_set = f_target[d,:].copy()
+            # Set up the minimization problem
+            b = np.zeros([n_rbfs + 1])
+            for k in range(n_rbfs + 1):
+                b[k] = scipy.integrate.simps(
+                    f_d_set * psi_set[k,:] * s_track / psi_sum,
+                    s_track)
+
+            # Solve the minimization problem
+           
+            rw[d, :] = np.nan_to_num(scipy.linalg.lu_solve(LU, b))
+
+        self.w[:,idx] = rw
+
     def gen_width(self):
         '''
         Set the "widths" for the basis functions.
@@ -254,7 +345,8 @@ class DMPs_cartesian(object):
         if g_w:
             # Efficiently generate weights to realize f_target
             # (only if not called by paths_regression)
-            self.gen_weights(f_target)
+            #self.gen_weights(f_target)
+            self.generate_weights(f_target)
             self.reset_state()
             self.learned_position = self.x_goal - self.x_0
         return f_target
@@ -321,7 +413,7 @@ class DMPs_cartesian(object):
             b = np.zeros([self.n_bfs + 1])
             for k in range(self.n_bfs + 1):
                 b[k] = scipy.integrate.simps(
-                    np.sum(f_d_set * psi_set[k, :] * s_track / psi_sum, 0),
+                    f_d_set * psi_set[k, :] * s_track / psi_sum,
                     s_track)
 
             # Solve the minimization problem
@@ -338,28 +430,6 @@ class DMPs_cartesian(object):
         self.dx = v0
         self.ddx = np.zeros(self.n_dmps)
         self.cs.reset_state()
-    
-    def get_centers(self, t0, t1):
-        '''
-        Get the centers of the basis functions
-        '''
-
-
-    def gen_retraineds_weights(self, f_target):
-        '''
-        Generate a set of weights over the basis functions such that the
-        target forcing term trajectory is matched.
-         f_target shaped n_dim x n_time_steps
-        '''
-        # Generate the basis functions
-        s_track = self.cs.rollout()
-        psi_track = self.gen_psi(s_track)
-        # Compute useful quantities
-        sum_psi = np.sum(psi_track, 0)
-        P = psi_track / sum_psi * s_track
-        # Compute the weights using linear regression
-        self.w = np.nan_to_num(f_target @ np.linalg.pinv(P))
-
 
     def retrain(self, x_new, t0, t1, s0, s1):
         '''
@@ -368,24 +438,26 @@ class DMPs_cartesian(object):
         # Subtract t0 from t1 to get the final time when moving t0 to 0
         tend = t1 - t0
 
-        s1_bar = s1 + self.width
-        s0_bar = s0 - self.width
+        print("check s0 and s1 tilde")
+        #s1_tilde = s1 + self.width[0]
+        #s0_tilde = s0 - self.width[0]
+        retrain_idx = []
+        for i in range(self.n_bfs):
+            if self.c[i]-1/self.width[i] <= s0 and self.c[i]-1/self.width[i] >=s1:
+                retrain_idx.append(i)
 
-        centers_to_retrain = np.nonzero(self.c > s1_bar and self.c < s0_bar)
-        
-
-
-        
-        # Identify which basis functions that shuld be retrained
-        nbfs = None
-        centers_ids = None #List of ids of the basis functions to retrain
-
+        s0_tilde = s0 + 1/self.width[retrain_idx[0]-1]
+        s1_tilde = s1 - 1/self.width[retrain_idx[-1]]
         
         # Generate new DMP for training
-        temp_dmp = DMPs_cartesian(n_dmps = self.n_dmps, n_bfs = nbfs, dt = self.cs.dt, T = tend, basis = self.basis)
-        temp_dmp.imitate_path(x_des = x_new)
+        temp_dmp = DMPs_cartesian(n_dmps = self.n_dmps, dt = self.cs.dt, T = tend, basis = self.basis)
+
+        print("check f_target")
+        f_target = temp_dmp.imitate_path(x_des = x_new,g_w = False)
 
         # Retrain the basis functions
+        self.retrain_weights(f_target, s0_tilde, s1_tilde)
+        print("check retrain_weights")
         
 
     def rollout(self, tau = 1.0, v0 = None, **kwargs):
