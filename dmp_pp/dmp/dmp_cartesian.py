@@ -143,7 +143,6 @@ class DMPs_cartesian(object):
             psi_set = np.exp(- xi)
         else:
             xi = np.abs(w * (s - c))
-            print(xi)
             if (self.basis == 'mollifier'):
                 psi_set = (np.exp(- 1.0 / (1.0 - xi * xi))) * (xi < 1.0)
             elif (self.basis == 'wendland2'):
@@ -362,12 +361,18 @@ class DMPs_cartesian(object):
         self.w = np.nan_to_num(f_target @ np.linalg.pinv(P))
 
 
-    def retrain(self, x_new, t0, t1):
+    def retrain(self, x_new, t0, t1, s0, s1):
         '''
         Retrain the DMPs using the new trajectory
         '''
         # Subtract t0 from t1 to get the final time when moving t0 to 0
         tend = t1 - t0
+
+        s1_bar = s1 + self.width
+        s0_bar = s0 - self.width
+
+        centers_to_retrain = np.nonzero(self.c > s1_bar and self.c < s0_bar)
+        
 
 
         
