@@ -25,7 +25,7 @@ n_bfs = 100
 
 
 MP = dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier')
-MP.imitate_path(x_des=p)
+original_target = MP.imitate_path(x_des=p)
 
 
 collision = False
@@ -36,13 +36,13 @@ for i in range(len(ts)):
     p_temp, _, _ = MP.step()
     p_out[i,:] = p_temp
 
-    if ts[i] > 0.5 and ts[i]<1 and not collision:
+    if ts[i] > 0.5 and ts[i]<3 and not collision:
         collision = True
         s_collision_start = MP.cs.s
         t_collision_start = ts[i]
         #s1_bar = s_collision_start + MP.width
 
-    if ts[i] > 1 and collision:
+    if ts[i] > 3 and collision:
         collision = False
         s_collision_end = MP.cs.s
         t_collision_end = ts[i]
@@ -52,7 +52,18 @@ for i in range(len(ts)):
 
 xnew = np.array(p_retrained)
 
-MP.retrain(x_new = xnew, t0 = t_collision_start, t1 = t_collision_end, s0 = s_collision_start, s1 = s_collision_end)
+temp_w = copy.deepcopy(MP.w)
+
+MP.retrain(x_new = xnew, f_target_original = original_target, t0 = t_collision_start, t1 = t_collision_end, s0 = s_collision_start, s1 = s_collision_end)
+
+retrained_MP = dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier',w = MP.w,x_0=MP.x_0,x_goal=MP.x_goal)
+
+p_out_retrained = np.zeros(p.shape)
+for i in range(len(ts)):
+    p_temp_retrained, _, _ = retrained_MP.step()
+    p_out_retrained[i,:] = p_temp_retrained
+
+
 
 if plot:
     # Plot the results
@@ -60,24 +71,28 @@ if plot:
     ax1 = plt.axes(projection='3d')
     ax1.plot3D(p[:, 0], p[:, 1], p[:, 2], label=r'Demonstration', linewidth=2)
     ax1.plot3D(p_out[:, 0], p_out[:, 1], p_out[:, 2], label=r'DMP', linewidth=2)
+    ax1.plot3D(p_out_retrained[:, 0], p_out_retrained[:, 1], p_out_retrained[:, 2], label=r'DMP retrained', linewidth=2)
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')
     ax1.set_zlabel('Z')
     plt.title('Cartesian-space DMP (Position)')
-    plt.legend()
+    plt.legend(loc='upper right')
 
     fig2, axs = plt.subplots(3, 1)
     p = p[0:len(p_out),:]
     ts = ts[0:len(p_out)]
     axs[0].plot(ts, p[:, 0], label='Demo x')
     axs[0].plot(ts, p_out[:, 0], label='DMP x')
-    axs[0].legend()
+    axs[0].plot(ts, p_out_retrained[:, 0], label='DMP retrained x')
+    axs[0].legend(loc='upper right')
     axs[1].plot(ts, p[:, 1], label='Demo y')
     axs[1].plot(ts, p_out[:, 1], label='DMP y')
-    axs[1].legend()
+    axs[1].plot(ts, p_out_retrained[:, 1], label='DMP retrained y')
+    axs[1].legend(loc='lower right')
     axs[2].plot(ts, p[:, 2], label='Demo z')
     axs[2].plot(ts, p_out[:, 2], label='DMP z')
-    axs[2].legend()
+    axs[2].plot(ts, p_out_retrained[:, 2], label='DMP retrained z')
+    axs[2].legend(loc='upper right')
     plt.suptitle('Cartesian-space DMP (Position)')
 
     plt.show()
