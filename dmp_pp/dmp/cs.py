@@ -38,6 +38,21 @@ class CanonicalSystem():
 
         self.s = 1.0
 
+    def rollout_interval(self, start, end):
+
+        s_track = self.rollout()
+        new_s_track = []
+        for i in range(len(s_track)):
+            if s_track[i] >= end and s_track[i] <= start:
+                
+                new_s_track.append(s_track[i])
+
+        s_track = np.array(new_s_track)
+        s_track = np.nan_to_num(s_track)
+
+        return s_track
+        
+
     def rollout(self, tau = 1.0, **kwargs):
         '''
         Generate s.

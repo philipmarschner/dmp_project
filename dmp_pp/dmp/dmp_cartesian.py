@@ -254,12 +254,11 @@ class DMPs_cartesian(object):
             self.w[d, :] = np.nan_to_num(scipy.linalg.lu_solve(LU, b))
         self.learned_position = np.ones(self.n_dmps)
 
-    def retrain_weights(self, f_target,f_target_original,s0, s1,indexes):
+    def retrain_weights(self, f_target, f_target_original, s0, s1, s0_tilde, s1_tilde, indexes):
         
+        #s1_tilde = s1-np.abs(1/self.width[indexes[-1]])
+        #s0_tilde = s0+np.abs(1/self.width[indexes[0]])
 
-        s0_tilde = s0 + np.abs(1/self.width[indexes[0]])
-        s1_tilde = s1 - np.abs(1/self.width[indexes[-1]])
-        
         # Check for right order of s0_tilde and s1_tilde
         if (s0_tilde < s1_tilde):
             raise ValueError('s0_tilde must be greater than s1_tilde')
@@ -270,32 +269,55 @@ class DMPs_cartesian(object):
         
         ## Step 2: Learning of the retrained weights using linear regression
         rw = np.zeros([self.n_dmps, n_rbfs])
-        s_track = self.cs.rollout()
+        
 
         new_target = f_target_original
 
         new_s_track = []
         original_target = []
         temp = 0
-        if s1_tilde is not None:
-            #s_track =[s>s1_tilde and s < s0_tilde for s in s_track]
+        s1_tilde_index = 0
+        found_s1_tilde = False
+        s0_tilde_index = 0
+        found_s0_tilde = False
+        s1_index = 0
+        found_s1 = False
+        s0_index = 0
+        found_s0 = False
+        started = False
 
-            for i in range(len(s_track)):
-                if s_track[i] >= s1_tilde and s_track[i] <= s0_tilde:
-                    new_s_track.append(s_track[i])
-                    original_target.append(f_target_original[:,i])
+        s_track = self.cs.rollout_interval(start=s0_tilde, end=s1_tilde)
+        s_track_full = self.cs.rollout()
 
-                    if(s_track[i] >= s1 and s_track[i] < s0):
-                        original_target[-1] = f_target[:,temp]
-                        temp += 1
+        for i in range(s_track_full.shape[0]):
+            if s_track_full[i] <= s0_tilde and not found_s0_tilde:
+                s0_tilde_index = i
+                found_s0_tilde = True 
+            elif s_track_full[i] <= s0 and not found_s0:
+                s0_index = i
+                found_s0 = True
+            elif s_track_full[i] <= s1 and not found_s1:
+                s1_index = i
+                found_s1 = True
+            elif s_track_full[i] <= s1_tilde and not found_s1_tilde:
+                s1_tilde_index = i
+                found_s1_tilde = True
+
+            
+
+        original_target = copy.deepcopy(f_target_original)
+        original_target[:,s0_index+1:s0_index+f_target.shape[1]-2] = f_target[:,1:-2]
+        #original_target = f_target_original[:,s1_tilde_index:s0_tilde_index]
+        #original_target = f_target_original[:,s1_tilde_index:s0_tilde_index]
+        #original_target[:,s1_index-s1_tilde_index:f_target.shape[1]-(s0_tilde_index-s0_index)]
+        #original_target = np.nan_to_num(original_target)
+        #original_target = np.transpose(original_target)
 
 
-            s_track = np.array(new_s_track)
-            s_track = np.nan_to_num(s_track)
+        original_target = original_target[:,s0_tilde_index:s1_tilde_index]
 
-        original_target = np.array(original_target)
-        original_target = np.nan_to_num(original_target)
-        original_target = np.transpose(original_target)
+
+
 
         psi_set = self.gen_psi_retrain(s_track,idx)
         psi_sum = np.sum(psi_set,0)
@@ -322,7 +344,7 @@ class DMPs_cartesian(object):
             b = np.zeros([n_rbfs])
             for k in range(n_rbfs):
                 b[k] = scipy.integrate.simps(
-                    np.nan_to_num(f_d_set * psi_set[k,:] * s_track / psi_sum),
+                        np.nan_to_num(f_d_set * psi_set[k,:] * s_track / psi_sum),
                     s_track)
 
             # Solve the minimization problem
@@ -341,7 +363,6 @@ class DMPs_cartesian(object):
         else:
             self.width = 1.0 / np.diff(self.c)
             self.width = np.append(self.width[0], self.width)
-
 
 
     def imitate_path(self, x_des, dx_des = None, ddx_des = None, t_des = None,
@@ -408,6 +429,54 @@ class DMPs_cartesian(object):
             self.generate_weights(f_target)
             self.reset_state()
             self.learned_position = self.x_goal - self.x_0
+        return f_target
+
+
+    def imitate_retrained_path(self, x_des,s1, s0,t0,t1, dx_des = None, ddx_des = None, t_des = None):
+        '''
+        Takes in a desired trajectory and generates the set of system
+        parameters that best realize this path.
+          x_des array shaped num_timesteps x n_dmps
+          t_des 1D array of num_timesteps component
+          g_w boolean, used to separate the one-shot learning from the
+                       regression over multiple demonstrations
+        '''
+        
+
+        ## Set initial state and x_goal
+        x_0 = self.x_0.copy()
+        x_goal = self.x_goal.copy()
+
+      
+        # Default value for t_des
+        t_des = np.linspace(0, t1-t0, x_des.shape[0])
+       
+
+        time = np.linspace(0., t1-t0, x_des.shape[0])
+
+        ## Piecewise linear interpolation
+        # Interpolation function
+        path_gen = scipy.interpolate.interp1d(t_des, x_des.transpose())
+        # Evaluation of the interpolant
+        path = path_gen(time)
+        x_des = path.transpose()
+
+        ## Second order estimates of the derivatives
+        ## (the last non centered, all the others centered)
+        D1 = compute_D1(x_des.shape[0], self.cs.dt)
+        dx_des = np.dot(D1, x_des)
+
+        D2 = compute_D2(x_des.shape[0], self.cs.dt)
+        ddx_des = np.dot(D2, x_des)
+        
+
+        ## Find the force required to move along this trajectory
+        s_track = self.cs.rollout_interval(start=s0, end=s1)
+
+        f_target = ((ddx_des / self.K - (x_goal - x_des) + 
+            self.D / self.K * dx_des).transpose() +
+            np.reshape((x_goal - x_0), [self.n_dmps, 1]) * s_track)
+       
         return f_target
 
     def paths_regression(self, traj_set, t_set = None):
@@ -494,27 +563,37 @@ class DMPs_cartesian(object):
         '''
         Retrain the DMPs using the new trajectory
         '''
-        # Subtract t0 from t1 to get the final time when moving t0 to 0
-        tend = t1 - t0
 
         print("check s0 and s1 tilde")
-        #s1_tilde = s1 + self.width[0]
-        #s0_tilde = s0 - self.width[0]
         retrain_idx = []
         for i in range(self.n_bfs):
-            if self.c[i]-1/self.width[i] <= s0 and self.c[i]-1/self.width[i] >=s1:
+            if self.c[i]-np.abs(1/self.width[i]) <= s0 and self.c[i]+np.abs(1/self.width[i]) >=s1:
                 retrain_idx.append(i)
 
        
+        s1_tilde = s1-np.abs(1/self.width[retrain_idx[-1]])
+        s0_tilde = s0+np.abs(1/self.width[retrain_idx[0]])
+
+
         # Generate new DMP for training
-        temp_dmp = DMPs_cartesian(n_dmps = self.n_dmps, dt = self.cs.dt, T = tend, basis = self.basis)
+        #temp_dmp = DMPs_cartesian(n_dmps = self.n_dmps, n_bfs= len(retrain_idx),dt = self.cs.dt, T = tend, basis='mollifier')
+
+
+
+        #dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier')
 
         print("check f_target")
-        f_target = temp_dmp.imitate_path(x_des = x_new,g_w = False)
+
+        
+        f_target = self.imitate_retrained_path(x_des = x_new,s1 = s1,s0 = s0,t0=t0,t1=t1)
+
+        #MP = dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier')
+        #original_target = MP.imitate_path(x_des=p)
 
         # Retrain the basis functions
-        self.retrain_weights(f_target, f_target_original,s0, s1,retrain_idx)
+        self.retrain_weights(f_target = f_target, f_target_original = f_target_original, s0 = s0, s1 = s1, s0_tilde = s0_tilde, s1_tilde = s1_tilde, indexes = retrain_idx)
         print("check retrain_weights")
+        return f_target
         
 
     def rollout(self, tau = 1.0, v0 = None, **kwargs):
