@@ -71,7 +71,7 @@ UR5e = rtb.models.DH.UR5e()
 Tc = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
 
 observer_c = observer.Observer(10,UR5e)
-admittance_c = admittance.Admitance(UR5e,0,0,Tc,70)
+admittance_c = admittance.Admitance(UR5e,0,0,Tc,120)
 velocity = 0.5
 acceleration = 0.5
 dt = 1.0/500  # 2ms
@@ -80,6 +80,9 @@ gain = 300
 
 #wait for 2 seconds
 init_pose = rtde_r.getActualTCPPose()
+print("init_pose: ", np.array(init_pose))
+exit()
+
 rtde_c.moveL(init_pose, vel, acc)
 
 
@@ -105,7 +108,7 @@ plotting = True
 if plotting:
     #file = open('FT_data_log6.csv', mode='w', newline='')
     #writer = csv.writer(file)
-    rtde_r.startFileRecording("log_admittance_control3.csv")
+    rtde_r.startFileRecording("finaltest.csv")
 
 #concatenate data
 
@@ -137,7 +140,7 @@ try:
 
         
 
-        current_position = init_pose[0:3]
+        current_position = current_pose[0:3]
         current_orientation = init_pose[3:6]
         #convert current_position to numpy array
         current_position = np.array(current_position)
@@ -150,22 +153,13 @@ try:
 
         new_position = new_position.tolist()[0]
 
+
         current_pose[0] = new_position[0]
         current_pose[1] = new_position[1]
         current_pose[2] = new_position[2]
     
         new_orientation = current_orientation
 
-      
-
-        if plotting:
-            #row = admittance_c.exponentialFilter(wrench)[0] + wrench
-            if i % 10 == 0:
-                sys.stdout.write("\r")
-                sys.stdout.write("{:3d} samples.".format(i))
-                sys.stdout.flush()
-
-            i += 1
 
             
 

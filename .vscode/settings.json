@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./momentum_observer"
+    ]
+}

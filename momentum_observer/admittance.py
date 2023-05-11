@@ -4,7 +4,7 @@ import spatialmath as sm
 import matplotlib.pyplot as plt
 import time
 import quaternion
-from livefilter import LiveLFilter
+#from livefilter import LiveLFilter
 import scipy.signal
 
 #from spatialmath import UnitQuaternion
@@ -26,12 +26,12 @@ class Admitance:
         self.deltaWd = np.zeros((3,1))
         self.deltaQuat = np.array([1,0,0,0]).reshape(4,1)
         b, a = scipy.signal.iirfilter(10, Wn=10, fs=500, btype="low", ftype="butter")
-        self.filterx = LiveLFilter(b,a)
-        self.filtery = LiveLFilter(b,a)
-        self.filterz = LiveLFilter(b,a)
-        self.filtertx = LiveLFilter(b,a)
-        self.filterty = LiveLFilter(b,a)
-        self.filtertz = LiveLFilter(b,a)
+        #self.filterx = LiveLFilter(b,a)
+        #self.filtery = LiveLFilter(b,a)
+        #self.filterz = LiveLFilter(b,a)
+        #self.filtertx = LiveLFilter(b,a)
+        #self.filterty = LiveLFilter(b,a)
+        #self.filtertz = LiveLFilter(b,a)
 
         self.lastWrench = np.zeros((1,6))
 

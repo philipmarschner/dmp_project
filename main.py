@@ -4,7 +4,7 @@ import pandas as pd
 import quaternion
 import matplotlib.pyplot as plt
 import sys
-from stream_path import stream_traj
+#from stream_path import stream_traj
 
 def omega_to_quat(omega, dt):
     # integrate to get quaternion for orientation
@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     # Read Demonstration and generate time vector
     #demo_filename = "demonstration.csv"
-    demo_filename = "./momentum_observer/log_admittance_control2.csv"
+    demo_filename = "/home/jacob/workspace/dmp_project/live_demo_log_admittance_control.csv"
     demo = pd.read_csv(demo_filename, delimiter=",")
 
     q = demo[['actual_q_0', 'actual_q_1', 'actual_q_2', 'actual_q_3', 'actual_q_4', 'actual_q_5']].to_numpy()

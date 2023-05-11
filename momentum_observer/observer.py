@@ -24,7 +24,7 @@ class Observer:
 
         
 
-        self.integral += (tau + np.transpose(self.model.coriolis(q,qd))@qd-self.model.gravload(q) -np.multiply(qd,self.fc) - np.multiply(np.sign(qd),self.fv) +self.oldR)*ds
+        self.integral += (tau + np.transpose(self.model.coriolis(q,qd))@qd-self.model.gravload(q) +self.oldR)*ds
 
         r = self.Ko*(self.model.inertia(q)@qd-self.integral)
         self.oldR = r
