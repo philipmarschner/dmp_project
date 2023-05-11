@@ -7,14 +7,18 @@ import copy
 plot = True
 
 # Parameters
-demo_filename = "log_admittance_control_dmp_with_slap_from_top.csv"
+demo_filename = "live_demo_log_admittance_control.csv"
 demo = pd.read_csv(demo_filename, delimiter=",")
+reteach_filename = "live_demo_reteach_log_admittance_control.csv"
+reteach = pd.read_csv(reteach_filename, delimiter=",")
 #demo_filename = "demonstration.csv"
 #demo = pd.read_csv(demo_filename, delimiter=" ")
 
 
 p = demo[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2']].to_numpy()
-
+p_reteach = reteach[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2']].to_numpy()
+print("p",p.shape)
+print("p reteach",p_reteach.shape)
 
 t_steps = len(p)
 dt = 1.0/500.0  # 2ms
@@ -23,7 +27,7 @@ dt = 1.0/500.0  # 2ms
 tau = len(p) * dt
 ts = np.arange(0, tau, dt)
 n_dmp = p.shape[1]
-n_bfs = 500
+n_bfs = 100
 
 
 MP = dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier')
@@ -37,8 +41,9 @@ p_original_interval = []
 
 
 p_out = np.zeros(p.shape)
-col_start = 4.0
-col_end = 6.5
+col_start = 2
+col_end = 6
+j = 1400
 for i in range(len(ts)):
     p_temp, _, _ = MP.step()
     p_out[i,:] = p_temp
@@ -56,17 +61,19 @@ for i in range(len(ts)):
         s_collision_end = MP.cs.s
         t_collision_end = ts[i]
         s1_index = i
-        p_retrained.append((p[i,:] + np.array([0,0,0.1])).tolist())
-        p_original_interval.append((original_target[:,i]).tolist())
+        p_retrained.append(p_reteach[j,:].tolist())
+        j += 1
+        #p_retrained.append((p[i,:] + np.array([0,0,0.1])).tolist())
+        #p_original_interval.append((original_target[:,i]).tolist())
         
-        p_retrained_plot.append((p[i,:] + np.array([0,0,0.1])).tolist())
+
     else:
         #p_retrained_plot.append((p[i,:]).tolist())
         pass
 
 
 xnew = np.array(p_retrained)
-x_original_interval = np.array(p_original_interval)
+#x_original_interval = np.array(p_original_interval)
 p_retrained_plot_array = np.array(p_retrained_plot)
 
 temp_w = copy.deepcopy(MP.w)
@@ -74,7 +81,7 @@ temp_w = copy.deepcopy(MP.w)
 new_target = MP.retrain(x_new = xnew, f_target_original = original_target, t0 = t_collision_start, t1 = t_collision_end, s0 = s_collision_start, s1 = s_collision_end)
 
 print("new_target.shape: ", new_target.shape)
-print("x_original_interval.shape: ", x_original_interval.shape)
+#print("x_original_interval.shape: ", x_original_interval.shape)
 
 
 
@@ -136,7 +143,7 @@ if plot:
     ax3[1].plot(ts, p_out[:, 1]- p_out_retrained[:,1], label='Difference DMP y')
     ax3[1].legend(loc='lower right')
     ax3[2].plot(ts, p_out[:, 2]- p_out_retrained[:, 2], label='Difference DMP z')
-    ax3[2].legend(loc='upper right')
+    ax3[2].legend(loc='lower right')
     plt.suptitle('Difference when retrained')
 
     plt.show()
