@@ -17,3 +17,6 @@ Currently the following functions are implemented:
 ## Installation
 
     python3 -m pip install .
+
+    if pybind11 does not exist, clone it to ur-dynamics/
+    git clone https://github.com/pybind/pybind11.git
