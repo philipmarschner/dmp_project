@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
+import copy
 import ur_robot
 np.set_printoptions(precision=6, suppress=True)
 
@@ -17,8 +18,6 @@ class Observer:
         self.oldR = np.zeros((6,))
         self.dt = 0.002
         #self.fc = np.array([12.54,13.27,4.99,2.0,2.69,2.3])
-        self.fv = np.array([0.0,0.0,0.0,0.0,0.0,0.0])
-        #self.fv = np.array([0.055,0.064,0.050,0.114,0.107,0.015])
         #self.fc = np.array([14.0,7.0,10.0,2.0,3.0,2.0])
         self.fc = np.array([0.0,0.0,0.0,0.0,0.0,0.0])
 
@@ -55,9 +54,11 @@ class Observer:
 
         self.integral += (tau + np.transpose(self.robot.coriolis(q,qd))@qd-self.robot.gravity(q) +self.oldR)*ds
 
+        if(qd[0] > 0.01):
+            pass
 
         r = self.Ko*(self.robot.inertia(q)@qd-self.integral)
-        self.oldR = r
+        self.oldR = copy.deepcopy(r)
 
 
 

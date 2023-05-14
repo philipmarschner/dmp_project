@@ -24,7 +24,7 @@ from scipy.fft import fftshift
 from numpy import genfromtxt
 from livefilter import LiveLFilter
 #my_data = genfromtxt('../FT_data_log6.csv', delimiter=',')
-demo = pandas.read_csv('/home/jacob/workspace/dmp_project/log_of_final_demonstration_test_observer.csv', delimiter=',')
+demo = pandas.read_csv('/home/jacob/workspace/dmp_project/log_of_final_demonstration_test_observer1.csv', delimiter=',')
 
 q = demo[['actual_q_0', 'actual_q_1', 'actual_q_2', 'actual_q_3', 'actual_q_4', 'actual_q_5']].to_numpy()
 qd = demo[['actual_qd_0', 'actual_qd_1', 'actual_qd_2', 'actual_qd_3', 'actual_qd_4', 'actual_qd_5']].to_numpy()
@@ -46,7 +46,7 @@ safety_bits = demo['safety_mode'].to_numpy()
 
 import observer
 
-dt = 0.002
+dt = 0.0025
 
 
 #UR5e = rtb.models.DH.UR5e()
@@ -65,7 +65,7 @@ torques = currents*torque_constant
 
 fs = 500
 
-b, a = signal.iirfilter(5, Wn=5, fs=fs, btype="high", ftype="butter")
+b, a = signal.iirfilter(5, Wn=20, fs=fs, btype="high", ftype="butter")
 
 live_lfilterr1 = LiveLFilter(b, a)
 live_lfilterr2 = LiveLFilter(b, a)
@@ -90,12 +90,12 @@ r6 = r_array[:,5]
 
 
 ## simulate live filter - passing values one by one
-filteredr1 = signal.medfilt(np.abs([live_lfilterr1._process(y) for y in r1]),3)
-filteredr2 = signal.medfilt(np.abs([live_lfilterr2._process(y) for y in r2]),3)
-filteredr3 = signal.medfilt(np.abs([live_lfilterr3._process(y) for y in r3]),3)
-filteredr4 = signal.medfilt(np.abs([live_lfilterr4._process(y) for y in r4]),3)
-filteredr5 = signal.medfilt(np.abs([live_lfilterr5._process(y) for y in r5]),3)
-filteredr6 = signal.medfilt(np.abs([live_lfilterr6._process(y) for y in r6]),3)
+filteredr1 = signal.medfilt(np.abs([live_lfilterr1._process(y) for y in r1]),1)
+filteredr2 = signal.medfilt(np.abs([live_lfilterr2._process(y) for y in r2]),1)
+filteredr3 = signal.medfilt(np.abs([live_lfilterr3._process(y) for y in r3]),1)
+filteredr4 = signal.medfilt(np.abs([live_lfilterr4._process(y) for y in r4]),1)
+filteredr5 = signal.medfilt(np.abs([live_lfilterr5._process(y) for y in r5]),1)
+filteredr6 = signal.medfilt(np.abs([live_lfilterr6._process(y) for y in r6]),1)
 
 #filteredr1 = live_lfilterr1._process(r[0])
 #filteredr2 = live_lfilterr2._process(r[1])
