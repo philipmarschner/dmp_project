@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     # Read Demonstration and generate time vector
     #demo_filename = "demonstration.csv"
-    demo_filename = "/home/jacob/workspace/dmp_project/live_demo_log_admittance_control.csv"
+    demo_filename = "momentum_observer/Observer_Test_500hz.csv"
     demo = pd.read_csv(demo_filename, delimiter=",")
 
     q = demo[['actual_q_0', 'actual_q_1', 'actual_q_2', 'actual_q_3', 'actual_q_4', 'actual_q_5']].to_numpy()

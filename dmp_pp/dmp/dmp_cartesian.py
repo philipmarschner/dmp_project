@@ -21,6 +21,7 @@ import scipy.interpolate
 import scipy.linalg
 import copy
 import pdb
+from typing import Tuple
 
 from dmp_pp.dmp.cs import CanonicalSystem
 from dmp_pp.dmp.exponential_integration import exp_eul_step
@@ -129,6 +130,7 @@ class DMPs_cartesian(object):
         # Desired activations throughout time
         self.c = np.exp(- self.cs.alpha_s * self.cs.run_time *
             ((np.cumsum(np.ones([1, self.n_bfs + 1])) - 1) / self.n_bfs))
+
 
     def gen_psi_retrain(self,s,index):
     
@@ -649,6 +651,22 @@ class DMPs_cartesian(object):
                     self.K * f]), axis=0)
         return x_track, dx_track, ddx_track, t_track
 
+    def fast_step(self, x, dt, tau, force_disturbance=np.array([0, 0, 0])) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        def fp(xj):
+            psi = np.exp(-self.h * (xj - self.c) ** 2)
+            return self.Dp.dot(self.w.dot(psi) / psi.sum() * xj)
+
+        # DMP system acceleration
+        self.ddp = (self.alpha * (self.beta * (self._gp - self.p) - tau * self.dp) + self._R_fx @ fp(x) + force_disturbance) / tau ** 2
+
+        # Integrate acceleration to obtain velocity
+        self.dp += self.ddp * dt
+
+        # Integrate velocity to obtain position
+        self.p += self.dp * dt
+
+        return self.p, self.dp, self.ddp
+
     def step(self, tau = 1.0, error = 0.0, external_force = None,
         adapt=False, tols=None, **kwargs):
         '''
@@ -692,6 +710,7 @@ class DMPs_cartesian(object):
             return out / tau
         ## Initialization of the adaptive step
         flag_tol = False
+        
         while not flag_tol:
             # Bogacki–Shampine method
             # Defining the canonical system in the time of the scheme

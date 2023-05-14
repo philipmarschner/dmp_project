@@ -24,7 +24,8 @@ import copy
 
 
 robot_ip = "192.168.1.111"
-fs = 500
+rtde_frequency = 500.0
+fs = rtde_frequency
 #"192.168.1.111"
 
 #sys.path.append('/home/jacob/workspace/dmp_project/dmp_pp/dmp')
@@ -36,7 +37,7 @@ live_lfilterfz = LiveLFilter(b, a)
 
 vel = 0.5
 acc = 0.5
-rtde_frequency = 500.0
+
 dt = 1.0/rtde_frequency  # 2ms
 flags = RTDEControl.FLAG_VERBOSE | RTDEControl.FLAG_UPLOAD_SCRIPT
 ur_cap_port = 50002
@@ -62,9 +63,8 @@ Tc = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
 admittance_c = admittance.Admitance(UR5e,0,0,Tc,100)
 velocity = 0.5
 acceleration = 0.5
-dt = 1.0/500  # 2ms
 lookahead_time = 0.1
-gain = 300
+gain = 150
 
 
 rtde_c.endTeachMode()
@@ -75,7 +75,7 @@ plotting = True
 if plotting:
     #file = open('FT_data_log6.csv', mode='w', newline='')
     #writer = csv.writer(file)
-    rtde_r.startFileRecording("log_of_final_demonstration.csv")
+    rtde_r.startFileRecording("log_of_final_demonstration_test_observer.csv")
 
 #concatenate data
 
@@ -83,7 +83,7 @@ if plotting:
 i = 0
 
 # Parameters
-demo_filename = "finaltest.csv"
+demo_filename = "momentum_observer/Observer_Test_500hz.csv"
 demo = pd.read_csv(demo_filename, delimiter=",")
 
 
@@ -91,7 +91,7 @@ p = demo[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2']].to_num
 
 
 t_steps = len(p)
-dt = 1.0/500.0  # 2ms
+
 
 
 tau = len(p) * dt
@@ -125,9 +125,9 @@ p_out = np.zeros(p.shape)
 current_pose = copy.deepcopy(init_pose)
 
 
-fs = 500
+#fs = 500
 
-b, a = scipy.signal.iirfilter(5, Wn=5, fs=fs, btype="high", ftype="butter")
+b, a = scipy.signal.iirfilter(5, Wn=10, fs=fs, btype="high", ftype="butter")
 
 live_lfilterr1 = LiveLFilter(b, a)
 live_lfilterr2 = LiveLFilter(b, a)
@@ -163,7 +163,7 @@ retrained_poses = []
 run_admittance = False
 run_retrained = False
 
-run_fillter = False
+run_fillter = True
 
 # define IO ports
 White = 6
@@ -171,18 +171,36 @@ Green = 5
 Black = 4
 Red = 7
 
+# DEFINE STATES
+STATE = -1
+DONE = 0
+STREAM_DMP = 1
+COLLISION_DETECTED = 2
+
 try:
     while True:
+        test_start = time.time()
         t_start = rtde_c.initPeriod()
 
         if(i >= len(ts)-1):
-            print("Ts is done")
+            #print("Ts is done")
+            STATE = DONE
             break
             
         # 1. Strean DMP to robot
+        #if STATE == STREAM_DMP:
         if not post_collision:
+
+            dmp_time = time.time()
             p_temp, _, _ = MP.step()
+            #p_temp = init_position
             p_out[i,:] = p_temp
+
+            dmp_end = time.time()
+
+            if iterations % 50 == 0:
+                print("DMP time: ", dmp_end-dmp_time)
+
             i += 1
 
             
@@ -195,8 +213,8 @@ try:
             current_pose[2] = current_position[2]
 
             if run_fillter:
-                if downscaler % 3 == 0:
-                
+                if True:
+                    test_start_filter = time.time()
                     downscaler = 0
                     currents = rtde_r.getActualCurrent()
                     currents_buffer.insert(0,currents)
@@ -208,39 +226,60 @@ try:
                     actual_qd = rtde_r.getActualQd()
     
                     r = observer_c.calcR(torques,dt,actual_q,actual_qd)
+                    #print("r: ",r)
+
+                    filteredr1 = live_lfilterr1._process(r[0])
+                    filteredr2 = live_lfilterr2._process(r[1])
+                    filteredr3 = live_lfilterr3._process(r[2])
+                    filteredr4 = live_lfilterr4._process(r[3])
+                    filteredr5 = live_lfilterr5._process(r[4])
+                    filteredr6 = live_lfilterr6._process(r[5])
+
+                    filteredr = np.array([filteredr1,filteredr2,filteredr3,filteredr4,filteredr5,filteredr6])
+                    #print("filteredr: ",filteredr)
+    
+                    # r_list = filteredr.tolist()
+                    # r_buffer.insert(0,r_list)
+                    # r_buffer.pop()
+    
+                    # r_array = np.array(r_buffer)
     
     
-                    r_list = r.tolist()
-                    r_buffer.insert(0,r_list)
-                    r_buffer.pop()
+                    # r1 = r_array[:,0]
+                    # r2 = r_array[:,1]
+                    # r3 = r_array[:,2]
+                    # r4 = r_array[:,3]
+                    # r5 = r_array[:,4]
+                    # r6 = r_array[:,5]
     
-                    r_array = np.array(r_buffer)
+                    #filteredr1 = scipy.signal.medfilt(np.abs(r1),3)
+                    #filteredr2 = scipy.signal.medfilt(np.abs(r2),3)
+                    #filteredr3 = scipy.signal.medfilt(np.abs(r3),3)
+                    #filteredr4 = scipy.signal.medfilt(np.abs(r4),3)
+                    #filteredr5 = scipy.signal.medfilt(np.abs(r5),3)
+                    #filteredr6 = scipy.signal.medfilt(np.abs(r6),3)
     
+                    #filteredsum = filteredr1 + filteredr2 + filteredr3 + filteredr4 + filteredr5 + filteredr6'
+                    filteredsum = np.abs(filteredr1) + np.abs(filteredr2) + np.abs(filteredr3) + np.abs(filteredr4) + np.abs(filteredr5) + np.abs(filteredr6)
+                    #print(filteredsum)
+                    test_end_filter = time.time()
+
+                    if iterations % 50 == 0:
+                        print("Time for filter: ", test_end_filter - test_start_filter)
+                        print("Frequency of filter: ", 1/(test_end_filter - test_start_filter))
+
+                    #print("Time for loop: ", test_end - test_start)
+                    #print("Frequency of loop: ", 1/(test_end - test_start))
     
-                    r1 = r_array[:,0]
-                    r2 = r_array[:,1]
-                    r3 = r_array[:,2]
-                    r4 = r_array[:,3]
-                    r5 = r_array[:,4]
-                    r6 = r_array[:,5]
-    
-                    filteredr1 = scipy.signal.medfilt(np.abs([live_lfilterr1._process(y) for y in r1]),3)
-                    filteredr2 = scipy.signal.medfilt(np.abs([live_lfilterr2._process(y) for y in r2]),3)
-                    filteredr3 = scipy.signal.medfilt(np.abs([live_lfilterr3._process(y) for y in r3]),3)
-                    filteredr4 = scipy.signal.medfilt(np.abs([live_lfilterr4._process(y) for y in r4]),3)
-                    filteredr5 = scipy.signal.medfilt(np.abs([live_lfilterr5._process(y) for y in r5]),3)
-                    filteredr6 = scipy.signal.medfilt(np.abs([live_lfilterr6._process(y) for y in r6]),3)
-    
-                    filteredsum = filteredr1 + filteredr2 + filteredr3 + filteredr4 + filteredr5 + filteredr6
-                    #print(filteredsum[1])
-    
-    
-                    if filteredsum[1] > 3 and iterations > 100:
+                    if filteredsum > 7 and iterations > 500:
                         print("Collision detected")
                         collision = True
+                        STATE = COLLISION_DETECTED
     
                         print("is protective stopped : " ,rtde_r.isProtectiveStopped())
                         rtde_c.servoStop()
+                        time.sleep(2)
+                        exit()
     
     
                         break
@@ -252,6 +291,7 @@ try:
 
 
         # 2. Catch collision and setup admittance controller
+        #if STATE == COLLISION_DETECTED:
         if rtde_r.getDigitalInState(Black) and not post_collision:
             t0 = i*dt
             s0 = MP.cs.s
@@ -269,7 +309,7 @@ try:
             record_retrain = True
             print("Recording data for retraining")
 
-        # 4. Record data for new dmp
+        # 4. Admittance controller
         if post_collision and run_admittance:
             training = True
 
@@ -317,7 +357,7 @@ try:
             print("Number of recorded poses: ", len(retrained_poses))
 
             # save recorded poses to file
-            np.savetxt("retrained_poses.txt", np.array(retrained_poses), delimiter=",")
+            np.savetxt("retrained_poses_test_observer.csv", np.array(retrained_poses), delimiter=",")
             
             xnew = np.array(retrained_poses)
             new_target = MP.retrain(x_new = xnew, f_target_original = original_target, t0 = t0, t1 = t1, s0 = s0, s1 = s1)
@@ -364,8 +404,12 @@ try:
                 print("Finished running retrained DMP")
                 exit()
             
-    
+        test_end = time.time()
         rtde_c.waitPeriod(t_start)
+        if iterations%10 == 0:
+            print("Time for loop: ", test_end - test_start)
+            print("Frequency of loop: ", 1/(test_end - test_start))
+            print("\n")
 
 except KeyboardInterrupt:
     if plotting:

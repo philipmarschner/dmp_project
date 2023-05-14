@@ -80,8 +80,8 @@ gain = 300
 
 #wait for 2 seconds
 init_pose = rtde_r.getActualTCPPose()
-print("init_pose: ", np.array(init_pose))
-exit()
+
+
 
 rtde_c.moveL(init_pose, vel, acc)
 
@@ -108,7 +108,7 @@ plotting = True
 if plotting:
     #file = open('FT_data_log6.csv', mode='w', newline='')
     #writer = csv.writer(file)
-    rtde_r.startFileRecording("finaltest.csv")
+    rtde_r.startFileRecording("Observer_Test_500hz.csv")
 
 #concatenate data
 
