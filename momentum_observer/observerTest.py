@@ -24,7 +24,7 @@ from scipy.fft import fftshift
 from numpy import genfromtxt
 from livefilter import LiveLFilter
 #my_data = genfromtxt('../FT_data_log6.csv', delimiter=',')
-demo = pandas.read_csv('/home/jacob/workspace/dmp_project/log_of_final_demonstration_test_observer1.csv', delimiter=',')
+demo = pandas.read_csv('/home/jacob/workspace/dmp_project/Demonstraiton_of_trajectory_May_17_log1.csv', delimiter=',')
 
 q = demo[['actual_q_0', 'actual_q_1', 'actual_q_2', 'actual_q_3', 'actual_q_4', 'actual_q_5']].to_numpy()
 qd = demo[['actual_qd_0', 'actual_qd_1', 'actual_qd_2', 'actual_qd_3', 'actual_qd_4', 'actual_qd_5']].to_numpy()
@@ -54,18 +54,18 @@ dt = 0.0025
 UR5e = rtb.models.DH.UR5e()
 #UR5eplot = rtb.models.UR5e()
 
-observer = observer.Observer(20,UR5e)
+observer = observer.Observer(50)
 
 #torque constant for first three joints 
 
 torque_constant = np.array([0.098322,0.098322,0.098322,0.07695,0.07695,0.07695])
 #torque_constant = np.array([0.07695,0.07695,0.07695,0.07695,0.07695,0.07695])
 #torques = currents*torque_constant
-torques = currents*torque_constant
+torques = currents*torque_constant*101
 
 fs = 500
 
-b, a = signal.iirfilter(5, Wn=20, fs=fs, btype="high", ftype="butter")
+b, a = signal.iirfilter(5, Wn=5, fs=fs, btype="high", ftype="butter")
 
 live_lfilterr1 = LiveLFilter(b, a)
 live_lfilterr2 = LiveLFilter(b, a)

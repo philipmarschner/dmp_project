@@ -10,12 +10,11 @@ import scipy.signal
 #from spatialmath import UnitQuaternion
 
 class Admitance:
-    def __init__(self,robot,kp,ko,Tc,kdp,dt = None):
-        self.kdo = None
+    def __init__(self,kp,ko,Tc,kdp,kdo,dt = None):
+        self.kdo = np.eye(3)*kdo
         self.kdp = np.eye(3)*kdp
         self.Ad = None
         self.Sp = None
-        self.robot = robot
         self.kp = np.eye(3)*kp
         self.ko = np.eye(3)*ko
         self.M = np.eye(3)
@@ -38,6 +37,8 @@ class Admitance:
         self.t = 0
         if not dt:
             self.dt = 0.002
+        else:
+            self.dt = dt
 
      
         self.Tc = Tc
@@ -162,25 +163,21 @@ class Admitance:
         self.deltaqddPos = np.linalg.inv(self.M)@(self.getForce(wrench).reshape(3,1)-self.kp@self.deltaqPos-self.kdp@self.deltaqdPos)
         self.deltaqPos += self.deltaqdPos*self.dt
         self.deltaqdPos += self.deltaqddPos*self.dt
-        
-        
-        
-        
-        
         self.t += self.dt
 
     def quatIntegrate(self,w):
         r =self.dt/2*w.T
-        r = np.insert(r,0,0) 
-
+       
         #rquat = self.quatExp(r)
 
-        temp = quaternion.from_float_array(r)
+        temp = quaternion.from_rotation_vector(r)
         rquat = np.exp(temp)
 
         temp = rquat*quaternion.from_float_array(self.deltaQuat.T.reshape(4,))
 
-        return  quaternion.as_float_array(temp).reshape(4,1)
+        #return  quaternion.as_float_array(temp).reshape(4,1)
+
+        return temp
     
     def getKQuat(self,q):
         return 2*self.calcE(q[0,0],q[1:4,0]).T@self.ko
@@ -190,10 +187,9 @@ class Admitance:
         
 
     def calcOriqdd(self, wrench):
-        self.deltaWd = np.linalg.inv(self.M)@(self.getTorque(wrench)-self.kdo@self.deltaW-self.getKQuat(self.deltaQuat)@self.deltaQuat[1:4])
+        self.deltaWd = np.linalg.inv(self.M)@(self.getTorque(wrench).reshape(3,1)-self.kdo@self.deltaW-self.getKQuat(self.deltaQuat)@self.deltaQuat[1:4])
         self.deltaW = self.deltaWd*self.dt
         self.deltaQuat = self.quatIntegrate(self.deltaW)
-    
         return
 
     def getDeltaqPos(self):
@@ -216,7 +212,14 @@ class Admitance:
         self.calcPosqdd(wrench)
         #self.calcOriqdd(wrench)
         return self.deltaqPos,self.deltaQuat
-
+    
+    def reset(self):
+        self.deltaqPos = np.zeros((3,1))
+        self.deltaqdPos = np.zeros((3,1))
+        self.deltaqddPos = np.zeros((3,1))
+        self.deltaW = np.zeros((3,1))
+        self.deltaWd = np.zeros((3,1))
+        self.deltaQuat = np.array([1,0,0,0]).reshape(4,1)
 
 
 
