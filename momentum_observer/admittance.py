@@ -214,7 +214,7 @@ class Admitance:
 
     def step(self, wrench):
         self.calcPosqdd(wrench)
-        #self.calcOriqdd(wrench)
+        self.calcOriqdd(wrench)
         return self.deltaqPos,self.deltaQuat
 
 
