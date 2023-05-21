@@ -101,7 +101,7 @@ plotting = True
 if plotting:
     #file = open('FT_data_log6.csv', mode='w', newline='')
     #writer = csv.writer(file)
-    rtde_r.startFileRecording("./Demonstraiton_of_trajectory_May_17_from_side_guesstimation.csv")
+    rtde_r.startFileRecording("./MAY_18_recording_end_in_plane.csv")
 
 
 Use_orientation = False

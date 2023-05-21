@@ -20,6 +20,7 @@ robot_ip = "192.168.1.111"
 rtde_frequency = 400.0
 fs = rtde_frequency
 dt = 1.0/rtde_frequency
+print("dt: ", dt)
 
 vel = 0.5
 acc = 0.5
@@ -28,10 +29,10 @@ iterations = 0
 i = 0
 
 # define IO ports
-White = 6
-Green = 5
-Black = 4
-Red = 7
+White = 6 # Not in use
+Green = 5 # retrain
+Black = 4 # trigger collision (NOT in use)
+Red = 7 # stop recording of retrain
 
 
 #-------------------------------------------------------
@@ -73,26 +74,29 @@ torque_constant = np.array([0.098322,0.098322,0.098322,0.07695,0.07695,0.07695])
 # Admittance controller setup
 #-------------------------------------------------------
 Tc = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
-admittance_teach = admittance.Admitance(kp=0,ko=0,Tc=Tc,kdp=100,kdo = 120,dt=dt)
+admittance_teach = admittance.Admitance(kp=300,ko=0,Tc=Tc,kdp=70,kdo=120, dt=dt)
+admittance_teach.kp = np.array([[300,0,0],[0,300,0],[0,0,150]])
 admittance_run = admittance.Admitance(kp=200,ko=0,Tc=Tc,kdp=150,kdo = 120,dt=dt)
 
 
 #-------------------------------------------------------
 # Setup data logging
 #-------------------------------------------------------
+filename = "May_18_log4_plane"
 plotting = True
 
 if plotting:
-    rtde_r.startFileRecording("Demonstraiton_of_trajectory_May_17_log1.csv")
+    rtde_r.startFileRecording(filename + "_demonstration.csv")
 
 retrained_poses = []
 
 #-------------------------------------------------------
 # Load demonstration
 #-------------------------------------------------------
-demo_filename = "./momentum_observer/Demonstraiton_of_trajectory_May_17_from_side_guesstimation.csv"
+demo_filename = "./momentum_observer/MAY_18_recording_end_in_plane.csv"
 demo = pd.read_csv(demo_filename, delimiter=",")
 p = demo[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2']].to_numpy()
+p_out_retrained = np.zeros(p.shape)
 t_steps = len(p)
 
 #-------------------------------------------------------
@@ -117,6 +121,7 @@ init_pose = rtde_r.getActualTCPPose()
 init_position = p[0,:]
 init_pose[0:3] = init_position[0:3]
 
+rtde_c.moveL([-6.20752571e-03, -7.13086081e-01,  3.93015192e-01, -7.46020711e-01, -3.05170720e+00, -1.53451753e-04], velocity, acceleration)
 rtde_c.moveL(init_pose, velocity, acceleration)
 time.sleep(1)
 
@@ -127,7 +132,7 @@ i_buffer = []
 x_buffer = []
 dx_buffer = []
 ddx_buffer = []
-for _ in range(0, 100):
+for _ in range(0, 300):
     pose_buffer.append(current_pose)
     phase_buffer.append(MP.cs.s)
     i_buffer.append(i)
@@ -156,7 +161,7 @@ PRINT_FILTER = False
 #-------------------------------------------------------
 try:
     while not STATE == STATE_DONE:
-        test_start = time.time()
+        timing_start = time.time()
         t_start = rtde_c.initPeriod()
 
 
@@ -171,9 +176,9 @@ try:
             break
 
         # Switch state if new DMP is stream successfully
-        if(i >= len(ts)-1) and STATE == STATE_STREAM_DMP:
-                STATE = STATE_DONE
-                print("Finished running retrained DMP")
+        if(i >= len(ts)-1) and STATE == STATE_STREAM_RETRAINED_DMP:
+            STATE = STATE_DONE
+            print("Finished running retrained DMP")
         
         # Switch state if manual collision detection is triggered
         if rtde_r.getDigitalInState(Black) and STATE == STATE_STREAM_DMP:
@@ -185,7 +190,7 @@ try:
             print("Recording data for retraining")
             STATE = STATE_RECORD
 
-        
+
 
         # Switch state if stop recording button is pressed
         if rtde_r.getDigitalInState(Red) and STATE == STATE_RECORD:
@@ -226,7 +231,8 @@ try:
 
                 #filteredsum = np.abs(filteredr1) + np.abs(filteredr2) + np.abs(filteredr3) + np.abs(filteredr4) + np.abs(filteredr5) # + np.abs(filteredr6)
 
-                filteredsum = np.abs(filteredr1) + np.abs(filteredr5)
+                #filteredsum = np.abs(filteredr1) + np.abs(filteredr5)
+                filteredsum = np.abs(filteredr5)
                 test_end_filter = time.time()
 
                 #if iterations % 50 == 0:
@@ -240,7 +246,7 @@ try:
                 # if PRINT_FILTER:
                 #     print("Filter values: ", filteredr)
 
-                if filteredsum > 4 and iterations > 200:
+                if filteredsum > 1 and iterations > 200:
                     print("Is protective stopped : " ,rtde_r.isProtectiveStopped())
                     # Move robot out of collision
                     #rtde_c.servoL(pose_buffer[0], velocity, acceleration, dt, lookahead_time, gain)
@@ -300,61 +306,61 @@ try:
             # Stream calculated pose from dmp + admittance controller 
             rtde_c.servoL(current_pose, velocity, acceleration, dt, lookahead_time, gain)
 
-
-
-
-
         # 2. Catch collision and setup admittance controller
         if STATE == STATE_COLLISION_DETECTED:
+            print("inside STATE_COLLISION_DETECTED")
             i = i_buffer[0]
             t0 = i*dt
             s0 = phase_buffer[0]
-            current_pose[0:3] = pose_buffer[0]
+            current_pose = pose_buffer[0]
+            collision_pose = copy.deepcopy(pose_buffer[0])
+            #rtde_c.moveL(current_pose, velocity, acceleration)
             rtde_c.servoL(current_pose, velocity, acceleration, dt, lookahead_time, gain)
+
+
             #rtde_r.stopFileRecording()
-            
             print("Zeroing FT sensor...")
-            time.sleep(1)
+            time.sleep(2)
             rtde_c.zeroFtSensor()
-            time.sleep(1)
+            time.sleep(2)
             print("Admittance controller is setup")
             STATE = STATE_ADMITTANCE_CONTROL
+
+            print(rtde_r.getActualTCPPose())
+            print(pose_buffer[0])
+            print("diff: ", np.array(rtde_r.getActualTCPPose()) - np.array(pose_buffer[0]))
             
             #Restore DMP to buffered state
             MP.cs.s = phase_buffer[0]
             MP.x = x_buffer[0]
             MP.dx = dx_buffer[0]
             MP.ddx = ddx_buffer[0]
+            new_tau = 1
 
         # 4. Admittance controller
         if STATE == STATE_ADMITTANCE_CONTROL or STATE == STATE_RECORD:
             
-            # Step DMP if in retrain state
-            if STATE == STATE_RECORD:
-                s1 = MP.cs.s
-                p_temp, _, _ = MP.step()
-                t1 = (i-1)*dt
-                i += 1
-                retrained_poses.append(current_pose[0:3])
-                current_pose[0:3] = p_temp[0:3].tolist()[0]
-
-
+            
+            # Add admittance controller
             wrench = rtde_r.getActualTCPForce()
             deltapos, deltaori = admittance_teach.step(wrench)
 
-        
-            current_position = current_pose[0:3]
-            #convert current_position to numpy array
-            current_position = np.array(current_position)
+            # Step DMP if in retrain state
+            if STATE == STATE_RECORD:
+                s1 = MP.cs.s
+                p_temp, _, _ = MP.step(tau=new_tau)
+                t1 = (i-1)*dt
+                i += 1
+                retrained_poses.append(current_pose[0:3])
+                current_pose[0:3] = (p_temp[0:3]+deltapos.T).tolist()[0]
+                
+            else:
 
-            new_position = current_position + deltapos.T
+                current_pose[0:3] = (np.array(collision_pose[0:3])+deltapos.T).tolist()[0]
 
-            #replace first 3 elements of current_pose with new_position
-            new_position = new_position.tolist()[0]
-            current_pose[0:3] = new_position[0:3]
+
 
             rtde_c.servoL(current_pose, velocity, acceleration, dt, lookahead_time, gain)
-
 
 
         # 5. Stop recording data and retrain dmp
@@ -364,16 +370,15 @@ try:
             print("Number of recorded poses: ", len(retrained_poses))
 
             # save recorded poses to file
-            np.savetxt("retrained_poses_test_observer.csv", np.array(retrained_poses), delimiter=",")
+            np.savetxt(filename + "_retrained_poses.csv", np.array(retrained_poses), delimiter=",")
             
             # Prepare for retraining
             xnew = np.array(retrained_poses)
-            new_target = MP.retrain(x_new = xnew, f_target_original = original_target, t0 = t0, t1 = t1, s0 = s0, s1 = s1)
+            new_target = MP.retrain(x_new = xnew, f_target_original = original_target, t0 = t0, t1 = t1, s0 = s0, s1 = s1, tau = new_tau)
 
             retrained_MP = dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier',w = MP.w, x_0 = MP.x_0, x_goal = MP.x_goal)
             
             
-            p_out_retrained = np.zeros(p.shape)
             i = 0
             print("Retrained DMP is setup")
             time.sleep(1)
@@ -395,18 +400,25 @@ try:
 
         # 6. Run retrained DMP
         if STATE == STATE_STREAM_RETRAINED_DMP:
-            if i_new_dmp <= len(ts):
-                p_temp_retrained, _, _ = retrained_MP.step()
-                p_out_retrained[i_new_dmp,:] = p_temp_retrained
-                current_position = p_temp_retrained[0:3].tolist()
+            p_temp_retrained, _, _ = retrained_MP.step()
+            p_out_retrained[i,:] = p_temp_retrained
+            current_position = p_temp_retrained[0:3].tolist()
 
-                current_pose[0:3] = current_position[0:3]
+            current_pose[0:3] = current_position[0:3]
 
-                rtde_c.servoL(current_pose, velocity, acceleration, dt, lookahead_time, gain)
-                i_new_dmp += 1
+            rtde_c.servoL(current_pose, velocity, acceleration, dt, lookahead_time, gain)
+            i += 1
+        
+        if STATE == STATE_DONE:
+            print("Done")
+            # save recorded poses to file
+            np.savetxt(filename + "_out_poses.csv", np.array(retrained_poses), delimiter=",")
+
+
             
-            
-        test_end = time.time()
+        timging_end = time.time()
+        # if (timging_end-timing_start) > dt:
+        #     print("Loop exceeds dt by: ", timging_end-timing_start)
         rtde_c.waitPeriod(t_start)
 
 

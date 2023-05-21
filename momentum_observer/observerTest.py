@@ -24,7 +24,7 @@ from scipy.fft import fftshift
 from numpy import genfromtxt
 from livefilter import LiveLFilter
 #my_data = genfromtxt('../FT_data_log6.csv', delimiter=',')
-demo = pandas.read_csv('/home/jacob/workspace/dmp_project/Demonstraiton_of_trajectory_May_17_log1.csv', delimiter=',')
+demo = pandas.read_csv('/home/jacob/workspace/dmp_project/May_18_log1_demonstration.csv', delimiter=',')
 
 q = demo[['actual_q_0', 'actual_q_1', 'actual_q_2', 'actual_q_3', 'actual_q_4', 'actual_q_5']].to_numpy()
 qd = demo[['actual_qd_0', 'actual_qd_1', 'actual_qd_2', 'actual_qd_3', 'actual_qd_4', 'actual_qd_5']].to_numpy()
@@ -35,6 +35,7 @@ target_moments = demo[['target_moment_0', 'target_moment_1', 'target_moment_2', 
 target_currents = demo[['target_current_0', 'target_current_1', 'target_current_2', 'target_current_3', 'target_current_4', 'target_current_5']].to_numpy()
 pose = demo[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2', 'actual_TCP_pose_3',	'actual_TCP_pose_4', 'actual_TCP_pose_5']].to_numpy()
 safety_bits = demo['safety_mode'].to_numpy()
+forces = demo[['actual_TCP_force_0', 'actual_TCP_force_1', 'actual_TCP_force_2', 'actual_TCP_force_3', 'actual_TCP_force_4', 'actual_TCP_force_5']].to_numpy()
 #rtde_c = rtde_control.RTDEControlInterface("192.168.1.111")
 #rtde_r = rtde_receive.RTDEReceiveInterface("192.168.1.111")
 
