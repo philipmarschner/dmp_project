@@ -167,6 +167,7 @@ class PositionDMP:
     @gp.setter
     def gp(self, value):
         self._gp = value
+        self.Dp = np.diag(self._gp - self._p0)
         if self._roto_dilatation:
             self._update_goal_change_parameters()
 

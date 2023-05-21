@@ -8,7 +8,7 @@ import sys
 
 
 dt = 0.002
-tau = 1
+tau = 2
 ts = np.arange(0, tau, dt)
 demo_a = np.sin(np.linspace(0, 2*np.pi, len(ts)))
 # integrate to get demo_v
@@ -23,7 +23,7 @@ for i in range(1, len(ts)):
 
 #demo[500:600] = 0.5
 n_bfs = 5
-plt.plot(ts,demo_p)
+
 q = np.zeros((len(ts), 3))
 q[:, 0] = demo_p
 q[:, 1] = demo_p
@@ -51,6 +51,21 @@ psi_w = np.zeros((len(ts), n_bfs))
 for i in range(len(x)):
     for j in range(n_bfs):
         psi_w[i,j] = dmp_q.w[0,j]* psi[i, j]
+
+fig_size = plt.rcParams["figure.figsize"]
+fig_size[0] = 3
+fig_size[1] = 2
+plt.rcParams["figure.figsize"] = fig_size
+plt.plot(ts,x)
+plt.xlabel('Time [s]')
+plt.ylabel('x')
+plt.xlim([0, 2])
+plt.ylim([0, 1])
+plt.grid()
+# set plot size
+
+plt.tight_layout()
+
 
 fig1, axs = plt.subplots(3, 2)
 fig1.figsize = (5,5)
@@ -81,4 +96,6 @@ axs[2,1].set_ylabel('$w_i\mathbf{\psi}_i(x)$')
 axs[2,1].set_xlabel('Time [s]')
 
 plt.tight_layout()
+
+
 plt.show()
