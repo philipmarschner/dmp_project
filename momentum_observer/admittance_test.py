@@ -4,6 +4,8 @@ import roboticstoolbox as rtb
 import matplotlib.pyplot as plt
 import quaternion
 import copy
+import stream_path as stream
+
 def refTrajectory(t):
     return np.array([0.3*np.sin(t/3), 0.3*np.sin(t/3)*np.cos(t/3), 0.1*np.sin(t)])
 
@@ -60,8 +62,8 @@ for i in range(len(timestamps)):
 
 #plt.plot(adm_pos[0,0:1000])
 
-fig, axs = plt.subplots(3)
-fig.suptitle('Vertically stacked subplots')
+fig, axs = plt.subplots(3,figsize=(4,3))
+fig.suptitle('Translation comparison, then force is applied')
 axs[0].plot(timestamps,ref_pos[:,0],label='ref x')
 axs[0].plot(timestamps,adm_pos[:,0],label='adm x')
 axs[0].legend(loc='upper right')
@@ -73,29 +75,32 @@ axs[2].plot(timestamps,adm_pos[:, 2],label='adm z')
 axs[2].legend(loc='upper right')
 axs[2].set(xlabel='time [s]', ylabel='position [m]')
 
-deltafig, deltaaxs = plt.subplots(3)
-deltafig.suptitle('Vertically stacked subplots')
+
+deltafig, deltaaxs = plt.subplots(3,figsize=(4,3))
+deltafig.suptitle('Translation delta, then Force is applied')
 deltaaxs[0].plot(timestamps,delta_pos[:, 0],label='delta x')
 deltaaxs[0].legend(loc='upper right')
 deltaaxs[1].plot(timestamps,delta_pos[:, 1],label='delta y')
 deltaaxs[1].legend(loc='upper right')
 deltaaxs[2].plot(timestamps,delta_pos[:, 2],label='delta z')
 deltaaxs[2].legend(loc='upper right')
+deltaaxs[2].set(xlabel='time [s]', ylabel='position [m]')
 
 #plot ref_pos and adm_pos in 3d
 fig3 = plt.figure()
+fig3.suptitle('Trajectory comparison shown in 3d')
 ax3d = plt.axes(projection='3d')
 ax3d.plot3D(ref_pos[:,0],ref_pos[:,1],ref_pos[:,2],label='ref')
 ax3d.plot3D(adm_pos[:,0],adm_pos[:,1],adm_pos[:,2],label='adm')
 ax3d.set_xlabel('X')
 ax3d.set_ylabel('Y')
 ax3d.set_zlabel('Z')
-
+ax3d.set(xlabel='position [m]', ylabel='position [m]',zlabel='position [n]')
 
 
 # plot orientation
-ofig, oaxs = plt.subplots(4)
-ofig.suptitle('Orientation')
+ofig, oaxs = plt.subplots(4,figsize=(4,3))
+ofig.suptitle('Orientation comparison, then wrench is applied')
 oaxs[0].plot(timestamps,ref_rot[:,0],label='ref w')
 oaxs[0].plot(timestamps,adm_rot[:,0],label='adm w')
 oaxs[0].legend(loc='upper right')
@@ -108,10 +113,11 @@ oaxs[2].legend(loc='upper right')
 oaxs[3].plot(timestamps,ref_rot[:,3],label='ref z')
 oaxs[3].plot(timestamps,adm_rot[:,3],label='adm z')
 oaxs[3].legend(loc='upper right')
+oaxs[3].set(xlabel='time [s]', ylabel='rotation')
 
 # plot delta orientation
-odelta, odeltaaxs = plt.subplots(4)
-ofig.suptitle('Orientation delta')
+odelta, odeltaaxs = plt.subplots(4,figsize=(4,3))
+odelta.suptitle('Orientation delta, then wrench is applied')
 odeltaaxs[0].plot(timestamps,delta_rot[:,0],label='delta w')
 odeltaaxs[0].legend(loc='upper right')
 odeltaaxs[1].plot(timestamps,delta_rot[:,1],label='delta x')
@@ -120,7 +126,7 @@ odeltaaxs[2].plot(timestamps,delta_rot[:,2],label='delta y')
 odeltaaxs[2].legend(loc='upper right')
 odeltaaxs[3].plot(timestamps,delta_rot[:,3],label='delta z')
 odeltaaxs[3].legend(loc='upper right')
-
+odeltaaxs[3].set(xlabel='time [s]', ylabel='rotation')
 
 #plot angular velocity
 
@@ -135,6 +141,7 @@ odeltaaxs[3].legend(loc='upper right')
 
 
 #wait for user to close plot
+plt.grid()
 plt.show()
 
 # plt.plot(odata[1,0:25000])
