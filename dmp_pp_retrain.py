@@ -7,16 +7,18 @@ import copy
 plot = True
 
 # Parameters
-demo_filename = "live_demo_log_admittance_control.csv"
+demo_filename = "momentum_observer/MAY_18_recording.csv"
 demo = pd.read_csv(demo_filename, delimiter=",")
-reteach_filename = "live_demo_reteach_log_admittance_control.csv"
+#reteach_filename = "May_18_log3_demonstration.csv"
+reteach_filename = "May_18_log3_retrained_poses.csv"
 reteach = pd.read_csv(reteach_filename, delimiter=",")
 #demo_filename = "demonstration.csv"
 #demo = pd.read_csv(demo_filename, delimiter=" ")
 
 
 p = demo[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2']].to_numpy()
-p_reteach = reteach[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2']].to_numpy()
+#p_reteach = reteach[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2']].to_numpy()
+p_reteach  =  reteach.to_numpy()
 print("p",p.shape)
 print("p reteach",p_reteach.shape)
 
@@ -27,11 +29,13 @@ dt = 1.0/500.0  # 2ms
 tau = len(p) * dt
 ts = np.arange(0, tau, dt)
 n_dmp = p.shape[1]
-n_bfs = 100
+n_bfs = 300
 
 
 MP = dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier')
 original_target = MP.imitate_path(x_des=p)
+
+
 
 
 collision = False
@@ -41,9 +45,9 @@ p_original_interval = []
 
 
 p_out = np.zeros(p.shape)
-col_start = 2
-col_end = 6
-j = 1400
+col_start = 3510*dt
+col_end = col_start + 1750*dt
+j = 0
 for i in range(len(ts)):
     p_temp, _, _ = MP.step()
     p_out[i,:] = p_temp
@@ -108,42 +112,53 @@ if plot:
     #Plot the results
     fig1 = plt.figure()
     ax1 = plt.axes(projection='3d')
-    ax1.plot3D(p[:, 0], p[:, 1], p[:, 2], label=r'Demonstration', linewidth=2)
-    ax1.plot3D(p_out[:, 0], p_out[:, 1], p_out[:, 2], label=r'DMP', linewidth=2)
-    ax1.plot3D(p_out_retrained[:, 0], p_out_retrained[:, 1], p_out_retrained[:, 2], label=r'DMP retrained', linewidth=2)
-    ax1.set_xlabel('X')
-    ax1.set_ylabel('Y')
-    ax1.set_zlabel('Z')
+    ax1.plot3D(p[:, 0], p[:, 1], p[:, 2], label=r'Demonstration', linewidth=1, linestyle='--',zorder=3)
+    ax1.plot3D(p_out[:, 0], p_out[:, 1], p_out[:, 2], label=r'DMP original', linewidth=2, zorder=2)
+    ax1.plot3D(p_out_retrained[:, 0], p_out_retrained[:, 1], p_out_retrained[:, 2], label=r'DMP adapted', linewidth=2, zorder=1)
+    ax1.set_xlabel('X [m]')
+    ax1.set_ylabel('Y [m]')
+    ax1.set_zlabel('Z [m]')
     plt.title('Cartesian-space DMP (Position)')
     plt.legend(loc='upper right')
 
-    fig2, axs = plt.subplots(3, 1)
-    p = p[0:len(p_out_retrained),:]
-    p_out = p_out[0:len(p_out_retrained),:]
-    ts = ts[0:len(p_out_retrained)]
-    axs[0].plot(ts, p[:, 0], label='Demo x')
-    axs[0].plot(ts, p_out[:, 0], label='DMP x')
-    axs[0].plot(ts, p_out_retrained[:, 0], label='DMP retrained x')
-    #axs[0].plot(ts, p_retrained_plot_array[:, 0], label='DMP retrained x')
-    axs[0].legend(loc='upper right')
-    axs[1].plot(ts, p[:, 1], label='Demo y')
-    axs[1].plot(ts, p_out[:, 1], label='DMP y')
-    axs[1].plot(ts, p_out_retrained[:, 1], label='DMP retrained y')
-    axs[1].legend(loc='lower right')
-    axs[2].plot(ts, p[:, 2], label='Demo z')
-    axs[2].plot(ts, p_out[:, 2], label='DMP z')
-    axs[2].plot(ts, p_out_retrained[:, 2], label='DMP retrained z')
-    axs[2].legend(loc='upper right')
+    fig2, axs = plt.subplots(3, 2, figsize=(9,5))
+    axs[0,0].plot(ts, p[:, 0], label='Demo x',linestyle="--",zorder=3)
+    axs[0,0].plot(ts, p_out[:, 0], label='$DMP_o x$',zorder=1,linewidth=3)
+    axs[0,0].plot(ts, p_out_retrained[:, 0], label='$DMP_a x$',zorder=2)
+    #axs[0,0].legend(loc='lower left')
+    axs[0,0].grid()
+    axs[0,0].set_ylabel('X [m]')
+    axs[1,0].plot(ts, p[:, 1], label='Demo',linestyle="--",zorder=3)
+    axs[1,0].plot(ts, p_out[:, 1], label='$DMP_o$',zorder=1,linewidth=3)
+    axs[1,0].plot(ts, p_out_retrained[:, 1], label='$DMP_a$',zorder=2)
+    axs[1,0].legend(loc='upper left')
+    axs[1,0].grid()
+    axs[1,0].set_ylabel('Y [m]')
+    axs[2,0].plot(ts, p[:, 2], label='Demo z',linestyle="--",zorder=3)
+    axs[2,0].plot(ts, p_out[:, 2], label='$DMP_o$ z',zorder=1,linewidth=3)
+    axs[2,0].plot(ts, p_out_retrained[:, 2], label='$DMP_a$ z', zorder=2)
+    #axs[2,0].legend(loc='upper left')
+    axs[2,0].grid()
+    axs[2,0].set_ylabel('Z [m]')
+    axs[2,0].set_xlabel('Time [s]')
+    #axs[0,1].plot(ts, p_out[:, 0]  - p[:, 0], label='$\Delta(DMP_o, Demo)$',color='orange')
+    axs[0,1].plot(ts, p_out_retrained[:, 0] - p_out[:, 0], label='$\Delta(DMP_a, DMP_o)$')
+    #axs[0,1].legend(loc='lower right')
+    axs[0,1].grid()
+    axs[0,1].set_ylabel('X [m]')
+    #axs[1,1].plot(ts, p_out[:, 1] - p[:, 1], label='$\Delta(DMP_o, Demo)$',color='orange')
+    axs[1,1].plot(ts, p_out_retrained[:, 1]- p_out[:, 1], label='$\Delta(DMP_a, DMP_o)$')
+    axs[1,1].legend(loc='lower left')
+    axs[1,1].grid()
+    axs[1,1].set_ylabel('Y [m]')
+    #axs[2,1].plot(ts, p_out[:, 2]- p[:, 2], label='$\Delta(DMP_o, Demo)$',color='orange')
+    axs[2,1].plot(ts, p_out_retrained[:, 2]- p_out[:, 2], label='$\Delta(DMP_a, DMP_o)$')
+    #axs[2,1].legend(loc='upper left')
+    axs[2,1].grid()
+    axs[2,1].set_ylabel('Z [m]')
+    axs[2,1].set_xlabel('Time [s]')
     plt.suptitle('Cartesian-space DMP (Position)')
+    plt.tight_layout()
 
-    fig3, ax3 = plt.subplots(3, 1)
-    ts = ts[0:len(p_out_retrained)]
-    ax3[0].plot(ts, p_out[:, 0]- p_out_retrained[:, 0], label='Difference DMP x')
-    ax3[0].legend(loc='upper right')
-    ax3[1].plot(ts, p_out[:, 1]- p_out_retrained[:,1], label='Difference DMP y')
-    ax3[1].legend(loc='lower right')
-    ax3[2].plot(ts, p_out[:, 2]- p_out_retrained[:, 2], label='Difference DMP z')
-    ax3[2].legend(loc='lower right')
-    plt.suptitle('Difference when retrained')
 
     plt.show()
