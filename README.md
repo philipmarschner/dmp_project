@@ -1,20 +1,6 @@
-# simple_dmp
+This repository contains the code used for the project in advanced robotics course.
 
-This is an (almost) minimal implementation of DMPs in Cartesian space (both position and quaternion) and in Joint space, with an optional (default disabled) roto-dilatation term.
+The record_demonstration.py script is used for recording a demonstration.
 
+The Combined_implementation.py contains the code for the combined test presented in section 5 of the report
 
-## Dependencies
-This project depends on:
-* NumPy
-* NumPy-Quaternion
-* Matplotlib
-* Pandas
-
-To install these, run <code>pip3 install --user numpy numpy-quaternion matplotlib pandas</code>.	
-
-## Running
-To the run the project, navigate to the root directory and call <code>python3 main.py</code>. This will first train and plot a DMP in joint space and then do the same in Cartesian space for the provided demonstration file, demonstration.csv.
-
-
-# If error "Fail to process string with tex because latex could not be found" follow this guide
-https://github.com/matplotlib/matplotlib/issues/16911
