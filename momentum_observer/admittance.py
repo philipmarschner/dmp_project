@@ -10,8 +10,8 @@ import scipy.signal
 #from spatialmath import UnitQuaternion
 
 class Admitance:
-    def __init__(self,robot,kp,ko,Tc,kdp,dt = None):
-        self.kdo = None
+    def __init__(self,robot,kp,ko,Tc,kdp,kdo,dt = None):
+        self.kdo = np.eye(3)*kdo
         self.kdp = np.eye(3)*kdp
         self.Ad = None
         self.Sp = None

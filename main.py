@@ -67,7 +67,7 @@ if __name__ == '__main__':
         exit()
 
     ## Cartesian DMP
-    if(sys.argv[1] == "cartesian"):
+    if True:
         # Ensure that the orientations are formatted properly
         for i in range(1, len(aa)):
             if np.dot(aa[i], aa[i - 1]) < 0:
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
         quats_array = quaternion.as_float_array(quats)
         quats_out_array = quaternion.as_float_array(q_out)
-
+        
         if plot:
             fig1 = plt.figure()
             ax1 = plt.axes(projection='3d')
