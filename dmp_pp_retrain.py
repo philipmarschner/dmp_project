@@ -9,14 +9,16 @@ plot = True
 # Parameters
 demo_filename = "momentum_observer/MAY_18_recording.csv"
 demo = pd.read_csv(demo_filename, delimiter=",")
-#reteach_filename = "May_18_log3_demonstration.csv"
+full_demo_fn = "May_18_log3_demonstration.csv"
 reteach_filename = "May_18_log3_retrained_poses.csv"
+full_demo = pd.read_csv(full_demo_fn, delimiter=",")
 reteach = pd.read_csv(reteach_filename, delimiter=",")
 #demo_filename = "demonstration.csv"
 #demo = pd.read_csv(demo_filename, delimiter=" ")
 
 
 p = demo[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2']].to_numpy()
+force = full_demo[['actual_TCP_force_0', 'actual_TCP_force_1', 'actual_TCP_force_2']].to_numpy()
 #p_reteach = reteach[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2']].to_numpy()
 p_reteach  =  reteach.to_numpy()
 print("p",p.shape)
@@ -42,6 +44,7 @@ collision = False
 p_retrained = []
 p_retrained_plot = []
 p_original_interval = []
+f_logged = []
 
 
 p_out = np.zeros(p.shape)
@@ -66,6 +69,7 @@ for i in range(len(ts)):
         t_collision_end = ts[i]
         s1_index = i
         p_retrained.append(p_reteach[j,:].tolist())
+        
         j += 1
         #p_retrained.append((p[i,:] + np.array([0,0,0.1])).tolist())
         #p_original_interval.append((original_target[:,i]).tolist())
@@ -106,7 +110,7 @@ for i in range(len(ts)):
     p_temp_retrained, _, _ = retrained_MP.step()
     p_out_retrained[i,:] = p_temp_retrained
 
-
+f_logged = np.array(f_logged)
 
 if plot:
     #Plot the results
@@ -160,5 +164,17 @@ if plot:
     plt.suptitle('Cartesian-space DMP (Position)')
     plt.tight_layout()
 
-
+    temp_ts = np.linspace(col_start,col_end,2196-50)
+    fig3, axs = plt.subplots(3, figsize=(5,4))
+    axs[0].plot(temp_ts,force[18779:18779+2196-50, 0],zorder=3)
+    axs[0].set_ylabel('$F_x$ [N]')
+    axs[0].grid()
+    axs[1].plot(temp_ts,force[18779:18779+2196-50, 1],zorder=3)
+    axs[1].set_ylabel('$F_y$ [N]')
+    axs[1].grid()
+    axs[2].plot(temp_ts,force[18779:18779+2196-50, 2],zorder=3)
+    axs[2].set_ylabel('$F_z$ [N]')
+    axs[2].set_xlabel('Time [s]')
+    axs[2].grid()
+    plt.tight_layout()
     plt.show()
