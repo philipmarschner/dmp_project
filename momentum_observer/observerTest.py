@@ -24,7 +24,7 @@ from scipy.fft import fftshift
 from numpy import genfromtxt
 from livefilter import LiveLFilter
 #my_data = genfromtxt('../FT_data_log6.csv', delimiter=',')
-demo = pandas.read_csv('/home/jacob/workspace/dmp_project/log_of_final_demonstration_test_observer1.csv', delimiter=',')
+demo = pandas.read_csv('/home/jacob/workspace/dmp_project/May_18_log1_demonstration.csv', delimiter=',')
 
 q = demo[['actual_q_0', 'actual_q_1', 'actual_q_2', 'actual_q_3', 'actual_q_4', 'actual_q_5']].to_numpy()
 qd = demo[['actual_qd_0', 'actual_qd_1', 'actual_qd_2', 'actual_qd_3', 'actual_qd_4', 'actual_qd_5']].to_numpy()
@@ -35,6 +35,7 @@ target_moments = demo[['target_moment_0', 'target_moment_1', 'target_moment_2', 
 target_currents = demo[['target_current_0', 'target_current_1', 'target_current_2', 'target_current_3', 'target_current_4', 'target_current_5']].to_numpy()
 pose = demo[['actual_TCP_pose_0', 'actual_TCP_pose_1', 'actual_TCP_pose_2', 'actual_TCP_pose_3',	'actual_TCP_pose_4', 'actual_TCP_pose_5']].to_numpy()
 safety_bits = demo['safety_mode'].to_numpy()
+forces = demo[['actual_TCP_force_0', 'actual_TCP_force_1', 'actual_TCP_force_2', 'actual_TCP_force_3', 'actual_TCP_force_4', 'actual_TCP_force_5']].to_numpy()
 #rtde_c = rtde_control.RTDEControlInterface("192.168.1.111")
 #rtde_r = rtde_receive.RTDEReceiveInterface("192.168.1.111")
 
@@ -54,18 +55,18 @@ dt = 0.0025
 UR5e = rtb.models.DH.UR5e()
 #UR5eplot = rtb.models.UR5e()
 
-observer = observer.Observer(20,UR5e)
+observer = observer.Observer(50)
 
 #torque constant for first three joints 
 
 torque_constant = np.array([0.098322,0.098322,0.098322,0.07695,0.07695,0.07695])
 #torque_constant = np.array([0.07695,0.07695,0.07695,0.07695,0.07695,0.07695])
 #torques = currents*torque_constant
-torques = currents*torque_constant
+torques = currents*torque_constant*101
 
 fs = 500
 
-b, a = signal.iirfilter(5, Wn=20, fs=fs, btype="high", ftype="butter")
+b, a = signal.iirfilter(5, Wn=5, fs=fs, btype="high", ftype="butter")
 
 live_lfilterr1 = LiveLFilter(b, a)
 live_lfilterr2 = LiveLFilter(b, a)

@@ -38,9 +38,9 @@ class CanonicalSystem():
 
         self.s = 1.0
 
-    def rollout_interval(self, start, end):
+    def rollout_interval(self, start, end, tau=1.0):
 
-        s_track = self.rollout()
+        s_track = self.rollout(tau=tau)
         new_s_track = []
         for i in range(len(s_track)):
             if s_track[i] >= end and s_track[i] <= start:

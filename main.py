@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     # Read Demonstration and generate time vector
     #demo_filename = "demonstration.csv"
-    demo_filename = "momentum_observer/Observer_Test_500hz.csv"
+    demo_filename = "momentum_observer/MAY_18_recording.csv"
     demo = pd.read_csv(demo_filename, delimiter=",")
 
     q = demo[['actual_q_0', 'actual_q_1', 'actual_q_2', 'actual_q_3', 'actual_q_4', 'actual_q_5']].to_numpy()
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     # Joint-Space DMP
     if(sys.argv[1] == "joint"):
         cs_alpha = -np.log(0.0001)
-        dmp_q = dmp_joint.JointDMP(n_bfs, alpha=500, beta=100, cs_alpha=cs_alpha)
+        dmp_q = dmp_joint.JointDMP(n_bfs, alpha=400, beta=100, cs_alpha=cs_alpha)
         dmp_q.train(q, ts, tau)
 
         q_out, dq_out, ddq_out = dmp_q.rollout(ts, tau)

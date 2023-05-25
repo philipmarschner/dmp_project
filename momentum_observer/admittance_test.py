@@ -20,7 +20,7 @@ admittanceController = Admitance(robot = None, kp = 100, ko = 200,Tc = Tc, kdp =
 tempread = admittanceController.kdp
 
 wrench = np.array([[0], [0], [0], [0], [0], [0]])
-testwrench = np.array([[0], [0], [0], [1], [2], [3]])
+testwrench = np.array([[0], [0], [0], [0], [0], [0]])
 t = 0
 t_end = 23
 dt = 1/500

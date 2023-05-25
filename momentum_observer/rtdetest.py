@@ -12,11 +12,11 @@ import admittance
 from livefilter import LiveLFilter
 import scipy
 import csv
-
+import quaternion
 import time
 import argparse
 import sys
-
+import copy
 
 
 robot_ip = "192.168.1.111"
@@ -66,12 +66,13 @@ dt = 0.02
 
 #UR5e = rtb.models.DH.UR5e()
 #UR5plot = rtb.models.UR5()
-UR5e = rtb.models.DH.UR5e()
+#UR5e = rtb.models.DH.UR5e()
 #UR5eplot = rtb.models.UR5e()
 Tc = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
 
-observer_c = observer.Observer(10,UR5e)
-admittance_c = admittance.Admitance(UR5e,0,0,Tc,120)
+
+observer_c = observer.Observer(10)
+admittance_c = admittance.Admitance(0,0,Tc,70,120)
 velocity = 0.5
 acceleration = 0.5
 dt = 1.0/500  # 2ms
@@ -81,12 +82,6 @@ gain = 300
 #wait for 2 seconds
 init_pose = rtde_r.getActualTCPPose()
 
-
-
-rtde_c.moveL(init_pose, vel, acc)
-
-
-#TODO: rotate wrenn to tool frame. Look at picture taken last time.
 
 time.sleep(2)
 rtde_c.zeroFtSensor()
@@ -98,24 +93,23 @@ rtde_c.endTeachMode()
 
 
 
-#rtde_c.moveJ([4.45956563949585, -1.7731076679625453, -1.3856301307678223, -1.5122645658305665, 1.5766737461090088, -2.2725346724139612], 0.5, 0.3)
 
-
-print("done")
+print("Done zeroing sensor")
 
 plotting = True
 
 if plotting:
     #file = open('FT_data_log6.csv', mode='w', newline='')
     #writer = csv.writer(file)
-    rtde_r.startFileRecording("Observer_Test_500hz.csv")
+    rtde_r.startFileRecording("./MAY_18_recording_end_in_plane.csv")
 
-#concatenate data
 
+Use_orientation = False
 
 i = 0
 
-#[4.45956563949585, -1.7731076679625453, -1.3856301307678223, -1.5122645658305665, 1.5766737461090088, -2.2725346724139612]
+current_pose =copy.deepcopy(init_pose)
+
 try:
     while True:
         t_start = rtde_c.initPeriod()
@@ -136,35 +130,52 @@ try:
     
         deltapos, deltaori = admittance_c.step(wrench)
 
-        current_pose = rtde_r.getActualTCPPose()
+        # Get current pose and split into position and orientation
+        #current_pose = rtde_r.getActualTCPPose()
 
-        
+        #current_pose = copy.deepcopy(init_pose)
+        current_position = init_pose[0:3]
+        current_orientation= init_pose[3:6]
 
-        current_position = current_pose[0:3]
-        current_orientation = init_pose[3:6]
-        #convert current_position to numpy array
+
+        #convert current_position and orientation to numpy array
         current_position = np.array(current_position)
+        
+        #if Use_orientation:
+        #    current_orientation = np.array(current_orientation)
+        #    
+        #    # Add the output of the admittance controller to the current position and orientation
+        #    
+        #    quats = quaternion.from_rotation_vector(current_orientation)
+        #    new_orientation = quaternion.as_rotation_vector(quats*deltaori)
+#
+#
+        #    # Ensure that the orientations are formatted properly in AA
+        #    if np.dot(new_orientation,current_orientation) < 0:
+        #        new_orientation *= -1
+#
+        #    # Ensure that the quaternions do not flip sign
+#
+        #    new_orientation = quaternion.from_rotation_vector(new_orientation)
+#
+        #    if np.dot(quats.vec, new_orientation.vec) < 0:
+        #        new_orientation *= -1
+#
+        #    #Convert orientation to AA
+        #    new_orientation = quaternion.as_rotation_vector(new_orientation)
+        #    
+        #    #replace first 3 elements of current_pose with new_position
+        #else:            
+        #    new_orientation = current_orientation.tolist()[0]
 
-        #print("current_position :" ,current_position)
-        new_position = current_position + deltapos.T
 
-
-        #replace first 3 elements of current_pose with new_position
-
-        new_position = new_position.tolist()[0]
-
-
-        current_pose[0] = new_position[0]
-        current_pose[1] = new_position[1]
-        current_pose[2] = new_position[2]
-    
         new_orientation = current_orientation
+        new_position = (current_position + deltapos.T).tolist()[0]
+        #new_position = new_position.tolist()[0]
 
 
-            
-
-            
-
+        current_pose[0:3] = new_position[0:3]
+        current_pose[3:6] = new_orientation[0:3]        
 
         rtde_c.servoL(current_pose, velocity, acceleration, dt, lookahead_time, gain)
     

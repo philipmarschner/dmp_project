@@ -434,7 +434,7 @@ class DMPs_cartesian(object):
         return f_target
 
 
-    def imitate_retrained_path(self, x_des,s1, s0,t0,t1, dx_des = None, ddx_des = None, t_des = None):
+    def imitate_retrained_path(self, x_des,s1, s0,t0,t1, dx_des = None, ddx_des = None, t_des = None,tau = 1):
         '''
         Takes in a desired trajectory and generates the set of system
         parameters that best realize this path.
@@ -473,8 +473,13 @@ class DMPs_cartesian(object):
         
 
         ## Find the force required to move along this trajectory
-        s_track = self.cs.rollout_interval(start=s0, end=s1)
+        s_track = self.cs.rollout_interval(start=s0, end=s1,tau=tau)
 
+        print("ddx_des shape: ",ddx_des.shape)
+        print("dx_des shape: ",dx_des.shape)
+        print("x_des shape: ",x_des.shape)
+        print("x_goal shape: ",x_goal.shape)
+        print("s_track shape: ",s_track.shape)
         f_target = ((ddx_des / self.K - (x_goal - x_des) + 
             self.D / self.K * dx_des).transpose() +
             np.reshape((x_goal - x_0), [self.n_dmps, 1]) * s_track)
@@ -561,12 +566,11 @@ class DMPs_cartesian(object):
         self.ddx = np.zeros(self.n_dmps)
         self.cs.reset_state()
 
-    def retrain(self, x_new,f_target_original, t0, t1, s0, s1):
+    def retrain(self, x_new,f_target_original, t0, t1, s0, s1, tau = 1):
         '''
         Retrain the DMPs using the new trajectory
         '''
 
-        print("check s0 and s1 tilde")
         retrain_idx = []
         for i in range(self.n_bfs):
             if self.c[i]-np.abs(1/self.width[i]) <= s0 and self.c[i]+np.abs(1/self.width[i]) >=s1:
@@ -584,17 +588,15 @@ class DMPs_cartesian(object):
 
         #dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier')
 
-        print("check f_target")
 
         
-        f_target = self.imitate_retrained_path(x_des = x_new,s1 = s1,s0 = s0,t0=t0,t1=t1)
+        f_target = self.imitate_retrained_path(x_des = x_new,s1 = s1,s0 = s0,t0=t0,t1=t1,tau=tau)
 
         #MP = dmp(n_dmps = n_dmp, n_bfs=n_bfs, dt = dt, T = ts[-1], basis='mollifier')
         #original_target = MP.imitate_path(x_des=p)
 
         # Retrain the basis functions
         self.retrain_weights(f_target = f_target, f_target_original = f_target_original, s0 = s0, s1 = s1, s0_tilde = s0_tilde, s1_tilde = s1_tilde, indexes = retrain_idx)
-        print("check retrain_weights")
         return f_target
         
 
